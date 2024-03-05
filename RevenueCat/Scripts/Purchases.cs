@@ -659,6 +659,9 @@ public partial class Purchases : MonoBehaviour
         _wrapper.GetOfferings();
     }
 
+    public delegate void SyncCompleteFunc();
+    private SyncCompleteFunc GetSyncCompleteCallback { get; set; }
+
     /// <summary>
     /// This method will post all purchases associated with the current App Store account to RevenueCat and
     /// become associated with the current <c>appUserID</c>.
@@ -679,8 +682,9 @@ public partial class Purchases : MonoBehaviour
     /// </remarks>
     /// <seealso href="https://docs.revenuecat.com/docs/restoring-purchases"/>
     ///
-    public void SyncPurchases()
+    public void SyncPurchases(SyncCompleteFunc callback)
     {
+        GetSyncCompleteCallback = callback;
         _wrapper.SyncPurchases();
     }
 
@@ -1203,6 +1207,15 @@ public partial class Purchases : MonoBehaviour
         }
 
         MakePurchaseCallback = null;
+    }
+
+
+    private void _syncCompleted(string ignoreThis)
+    {
+        Debug.Log("_syncCompleted ");
+        if (GetSyncCompleteCallback is null) return;
+        GetSyncCompleteCallback();
+        GetSyncCompleteCallback = null;
     }
 
     // ReSharper disable once UnusedMember.Local
