@@ -25,6 +25,8 @@ static NSString *const HANDLE_LOG = @"_handleLog";
 
 #pragma mark Utility Methods
 
+static NSString *const SYNC_COMPLETE = @"_syncCompleted";
+
 NSString *convertCString(const char *string) {
     if (string)
         return [NSString stringWithUTF8String:string];
@@ -157,6 +159,7 @@ signedDiscountTimestamp:(NSString *)signedDiscountTimestamp {
     // print the response, to match Android behavior.
     [RCCommonFunctionality syncPurchasesWithCompletionBlock:^(NSDictionary *_Nullable responseDictionary, RCErrorContainer *_Nullable error) {
         NSLog(@"received syncPurchases response: \n customerInfo: %@ \n error:%@", responseDictionary, error);
+        UnitySendMessage(self.gameObject.UTF8String, SYNC_COMPLETE.UTF8String, "");
     }];
 }
 
