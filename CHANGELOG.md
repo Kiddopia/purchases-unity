@@ -1,3 +1,19 @@
+## 6.9.0
+### Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 10.2.0 (#434) via RevenueCat Git Bot (@RCGitBot)
+  * [Android 7.7.2](https://github.com/RevenueCat/purchases-android/releases/tag/7.7.2)
+  * [iOS 4.39.0](https://github.com/RevenueCat/purchases-ios/releases/tag/4.39.0)
+  * [iOS 4.38.1](https://github.com/RevenueCat/purchases-ios/releases/tag/4.38.1)
+  * [iOS 4.38.0](https://github.com/RevenueCat/purchases-ios/releases/tag/4.38.0)
+### Other Changes
+* Update CHANGELOG to include 5.3.2 release notes (#416) via Toni Rico (@tonidero)
+
+## 6.8.4
+### Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 9.9.0 (#426) via RevenueCat Git Bot (@RCGitBot)
+  * [Android 7.7.1](https://github.com/RevenueCat/purchases-android/releases/tag/7.7.1)
+  * [Android 7.7.0](https://github.com/RevenueCat/purchases-android/releases/tag/7.7.0)
+
 ## 6.8.3
 ### Bugfixes
 * Make `CustomerInfo` `allPurchaseDates` values nullable (#423) via Toni Rico (@tonidero)
@@ -202,6 +218,11 @@ purchases.Configure(purchasesConfiguration);
   * [Android 7.0.0](https://github.com/RevenueCat/purchases-android/releases/tag/7.0.0)
   * [iOS 4.27.0](https://github.com/RevenueCat/purchases-ios/releases/tag/4.27.0)
   * [iOS 4.26.2](https://github.com/RevenueCat/purchases-ios/releases/tag/4.26.2)
+
+## 5.3.2
+### Dependency Updates
+* Updates purchases-hybrid-common to 6.3.1 (#965)
+  * [Android 6.9.6](https://github.com/RevenueCat/purchases-android/releases/tag/6.9.6)
 
 ## 5.3.0
 ### Dependency Updates
