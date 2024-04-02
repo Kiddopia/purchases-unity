@@ -17,6 +17,8 @@ static NSString *const LOG_IN = @"_logIn";
 static NSString *const LOG_OUT = @"_logOut";
 static NSString *const MAKE_PURCHASE = @"_makePurchase";
 static NSString *const GET_OFFERINGS = @"_getOfferings";
+static NSString *const GET_CURRENT_OFFERING_FOR_PLACEMENT = @"_getCurrentOfferingForPlacement";
+static NSString *const SYNC_ATTRIBUTES_AND_OFFERINGS_IF_NEEDED = @"_syncAttributesAndOfferingsIfNeeded";
 static NSString *const GET_CUSTOMER_INFO = @"_getCustomerInfo";
 static NSString *const CHECK_ELIGIBILITY = @"_checkTrialOrIntroductoryPriceEligibility";
 static NSString *const CAN_MAKE_PAYMENTS = @"_canMakePayments";
@@ -65,7 +67,7 @@ char *makeStringCopy(NSString *nstring) {
 usesStoreKit2IfAvailable:(BOOL)usesStoreKit2IfAvailable
  userDefaultsSuiteName:(nullable NSString *)userDefaultsSuiteName
  dangerousSettingsJson:(NSString *)dangerousSettingsJson
- shouldShowInAppMessagesAutomatically:(BOOL)shouldShowInAppMessagesAutomatically 
+ shouldShowInAppMessagesAutomatically:(BOOL)shouldShowInAppMessagesAutomatically
  entitlementVerificationMode:(nullable NSString *)entitlementVerificationMode {
     self.products = nil;
     self.gameObject = nil;
@@ -92,7 +94,7 @@ usesStoreKit2IfAvailable:(BOOL)usesStoreKit2IfAvailable
                platformFlavorVersion:self.platformFlavorVersion
             usesStoreKit2IfAvailable:usesStoreKit2IfAvailable
                    dangerousSettings:dangerousSettings
-shouldShowInAppMessagesAutomatically:shouldShowInAppMessagesAutomatically 
+shouldShowInAppMessagesAutomatically:shouldShowInAppMessagesAutomatically
                     verificationMode:entitlementVerificationMode];
 
     self.gameObject = gameObject;
@@ -129,10 +131,10 @@ signedDiscountTimestamp:(NSString *)signedDiscountTimestamp {
 }
 
 - (void)purchasePackage:(NSString *)packageIdentifier
-     offeringIdentifier:(NSString *)offeringIdentifier
+presentedOfferingContext:(NSDictionary *)presentedOfferingContext
 signedDiscountTimestamp:(NSString *)signedDiscountTimestamp {
     [RCCommonFunctionality purchasePackage:packageIdentifier
-                                  offering:offeringIdentifier
+                  presentedOfferingContext:presentedOfferingContext
                    signedDiscountTimestamp:signedDiscountTimestamp
                            completionBlock:^(NSDictionary *_Nullable responseDictionary, RCErrorContainer *_Nullable error) {
         NSMutableDictionary *response;
@@ -185,6 +187,33 @@ signedDiscountTimestamp:(NSString *)signedDiscountTimestamp {
         }
 
         [self sendJSONObject:response toMethod:GET_OFFERINGS];
+    }];
+}
+
+- (void)getCurrentOfferingForPlacement:(NSString*)placementIdentifier {
+    [RCCommonFunctionality getCurrentOfferingForPlacement:placementIdentifier completionBlock:^(NSDictionary *_Nullable responseDictionary, RCErrorContainer *_Nullable error) {
+        NSMutableDictionary *response = [NSMutableDictionary new];
+        if (error) {
+            response[@"error"] = error.info;
+        } else {
+            response[@"offering"] = responseDictionary;
+        }
+
+        [self sendJSONObject:response toMethod:GET_CURRENT_OFFERING_FOR_PLACEMENT];
+    }];
+}
+
+
+- (void)syncAttributesAndOfferingsIfNeeded {
+    [RCCommonFunctionality syncAttributesAndOfferingsIfNeededWithCompletionBlock:^(NSDictionary *_Nullable responseDictionary, RCErrorContainer *_Nullable error) {
+        NSMutableDictionary *response = [NSMutableDictionary new];
+        if (error) {
+            response[@"error"] = error.info;
+        } else {
+            response[@"offerings"] = responseDictionary;
+        }
+
+        [self sendJSONObject:response toMethod:SYNC_ATTRIBUTES_AND_OFFERINGS_IF_NEEDED];
     }];
 }
 
@@ -419,7 +448,7 @@ signedDiscountTimestamp:(NSString *)signedDiscountTimestamp {
         NSLog(@"Error serializing response: %@", error.localizedDescription);
         return;
     }
-    
+
     if (responseJSONData) {
         NSString *json = [[NSString alloc] initWithData:responseJSONData encoding:NSUTF8StringEncoding];
         UnitySendMessage(self.gameObject.UTF8String, methodName.UTF8String, json.UTF8String);
@@ -458,7 +487,7 @@ signedDiscountTimestamp:(NSString *)signedDiscountTimestamp {
 }
 
 - (NSString *)platformFlavorVersion {
-    return @"6.8.3";
+    return @"6.9.2";
 }
 
 @end
@@ -511,9 +540,17 @@ void _RCPurchaseProduct(const char *productIdentifier, const char *signedDiscoun
                     signedDiscountTimestamp:convertCString(signedDiscountTimestamp)];
 }
 
-void _RCPurchasePackage(const char *packageIdentifier, const char *offeringIdentifier, const char *signedDiscountTimestamp) {
+void _RCPurchasePackage(const char *packageIdentifier, const char *presentedOfferingContextJSON, const char *signedDiscountTimestamp) {
+    NSError *error = nil;
+    NSDictionary *presentedOfferingContext = [NSJSONSerialization JSONObjectWithData:[convertCString(presentedOfferingContextJSON) dataUsingEncoding:NSUTF8StringEncoding] options:0 error:&error];
+
+    if (error) {
+        NSLog(@"Error parsing presentedOfferingContext JSON: %s %@", presentedOfferingContextJSON, error.localizedDescription);
+        return;
+    }
+
     [_RCUnityHelperShared() purchasePackage:convertCString(packageIdentifier)
-                         offeringIdentifier:convertCString(offeringIdentifier)
+                   presentedOfferingContext:presentedOfferingContext
                     signedDiscountTimestamp:convertCString(signedDiscountTimestamp)];
 }
 
@@ -542,6 +579,14 @@ void _RCSetAllowSharingStoreAccount(const BOOL allow) {
 
 void _RCGetOfferings() {
     [_RCUnityHelperShared() getOfferings];
+}
+
+void _RCGetCurrentOfferingForPlacement(const char *placementIdentifier) {
+    [_RCUnityHelperShared() getCurrentOfferingForPlacement:convertCString(placementIdentifier)];
+}
+
+void _RCSyncAttributesAndOfferingsIfNeeded() {
+    [_RCUnityHelperShared() syncAttributesAndOfferingsIfNeeded];
 }
 
 void _RCSetDebugLogsEnabled(const BOOL enabled) {
