@@ -1,6 +1,4 @@
 ### Dependency Updates
-* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 10.3.2 (#440) via RevenueCat Git Bot (@RCGitBot)
-  * [Android 7.8.1](https://github.com/RevenueCat/purchases-android/releases/tag/7.8.1)
-  * [Android 7.8.0](https://github.com/RevenueCat/purchases-android/releases/tag/7.8.0)
-  * [Android 7.7.3](https://github.com/RevenueCat/purchases-android/releases/tag/7.7.3)
-  * [iOS 4.39.1](https://github.com/RevenueCat/purchases-ios/releases/tag/4.39.1)
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 10.9.0 (#464) via RevenueCat Git Bot (@RCGitBot)
+  * [Android 7.11.1](https://github.com/RevenueCat/purchases-android/releases/tag/7.11.1)
+  * [iOS 4.43.0](https://github.com/RevenueCat/purchases-ios/releases/tag/4.43.0)

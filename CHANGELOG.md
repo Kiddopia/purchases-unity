@@ -1,3 +1,55 @@
+## 6.9.7
+### Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 10.9.0 (#464) via RevenueCat Git Bot (@RCGitBot)
+  * [Android 7.11.1](https://github.com/RevenueCat/purchases-android/releases/tag/7.11.1)
+  * [iOS 4.43.0](https://github.com/RevenueCat/purchases-ios/releases/tag/4.43.0)
+
+## 6.9.6
+### Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 10.8.0 (#462) via RevenueCat Git Bot (@RCGitBot)
+  * [Android 7.11.0](https://github.com/RevenueCat/purchases-android/releases/tag/7.11.0)
+  * [iOS 4.42.0](https://github.com/RevenueCat/purchases-ios/releases/tag/4.42.0)
+* Bump rexml from 3.2.6 to 3.2.8 (#459) via dependabot[bot] (@dependabot[bot])
+
+## 6.9.5
+### Dependency Updates
+* BillingClient has been updated to version 6.2.1
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 10.6.1 (#454) via RevenueCat Git Bot (@RCGitBot)
+  * [Android 7.10.1](https://github.com/RevenueCat/purchases-android/releases/tag/7.10.1)
+  * [Android 7.10.0](https://github.com/RevenueCat/purchases-android/releases/tag/7.10.0)
+  * [Android 7.9.0](https://github.com/RevenueCat/purchases-android/releases/tag/7.9.0)
+  * [iOS 4.41.2](https://github.com/RevenueCat/purchases-ios/releases/tag/4.41.2)
+  * [iOS 4.41.1](https://github.com/RevenueCat/purchases-ios/releases/tag/4.41.1)
+  * [iOS 4.41.0](https://github.com/RevenueCat/purchases-ios/releases/tag/4.41.0)
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 10.5.1 (#452) via RevenueCat Git Bot (@RCGitBot)
+  * [Android 7.10.1](https://github.com/RevenueCat/purchases-android/releases/tag/7.10.1)
+  * [Android 7.10.0](https://github.com/RevenueCat/purchases-android/releases/tag/7.10.0)
+  * [Android 7.9.0](https://github.com/RevenueCat/purchases-android/releases/tag/7.9.0)
+  * [iOS 4.41.2](https://github.com/RevenueCat/purchases-ios/releases/tag/4.41.2)
+  * [iOS 4.41.1](https://github.com/RevenueCat/purchases-ios/releases/tag/4.41.1)
+  * [iOS 4.41.0](https://github.com/RevenueCat/purchases-ios/releases/tag/4.41.0)
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 10.4.2 (#448) via RevenueCat Git Bot (@RCGitBot)
+  * [Android 7.10.1](https://github.com/RevenueCat/purchases-android/releases/tag/7.10.1)
+  * [Android 7.10.0](https://github.com/RevenueCat/purchases-android/releases/tag/7.10.0)
+  * [Android 7.9.0](https://github.com/RevenueCat/purchases-android/releases/tag/7.9.0)
+  * [iOS 4.41.2](https://github.com/RevenueCat/purchases-ios/releases/tag/4.41.2)
+  * [iOS 4.41.1](https://github.com/RevenueCat/purchases-ios/releases/tag/4.41.1)
+  * [iOS 4.41.0](https://github.com/RevenueCat/purchases-ios/releases/tag/4.41.0)
+### Other Changes
+* Remove outdated Amazon note in README (#449) via Toni Rico (@tonidero)
+
+## 6.9.4
+### Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 10.4.1 (#446) via RevenueCat Git Bot (@RCGitBot)
+  * [Android 7.8.2](https://github.com/RevenueCat/purchases-android/releases/tag/7.8.2)
+  * [iOS 4.40.1](https://github.com/RevenueCat/purchases-ios/releases/tag/4.40.1)
+
+## 6.9.3
+### Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 10.4.0 (#444) via RevenueCat Git Bot (@RCGitBot)
+  * [iOS 4.40.0](https://github.com/RevenueCat/purchases-ios/releases/tag/4.40.0)
+* Bump fastlane from 2.219.0 to 2.220.0 (#443) via dependabot[bot] (@dependabot[bot])
+
 ## 6.9.2
 ### Dependency Updates
 * [AUTOMATIC BUMP] Updates purchases-hybrid-common to 10.3.2 (#440) via RevenueCat Git Bot (@RCGitBot)
