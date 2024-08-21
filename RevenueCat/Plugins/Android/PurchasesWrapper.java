@@ -46,11 +46,13 @@ public class PurchasesWrapper {
     private static final String CHECK_ELIGIBILITY = "_checkTrialOrIntroductoryPriceEligibility";
     private static final String CAN_MAKE_PAYMENTS = "_canMakePayments";
     private static final String GET_PROMOTIONAL_OFFER = "_getPromotionalOffer";
+    private static final String GET_LWA_CONSENT_STATUS = "_getAmazonLWAConsentStatus";
+    private static final String SYNC_PURCHASES = "_syncPurchases";
 
     private static final String HANDLE_LOG = "_handleLog";
 
     private static final String PLATFORM_NAME = "unity";
-    private static final String PLUGIN_VERSION = "6.9.7";
+    private static final String PLUGIN_VERSION = "7.1.0";
 
     private static String gameObject;
 
@@ -64,20 +66,20 @@ public class PurchasesWrapper {
     public static void setup(String apiKey,
                              String appUserId,
                              String gameObject,
-                             boolean observerMode,
+                             String purchasesAreCompletedBy,
                              String userDefaultsSuiteName,
                              boolean useAmazon,
                              boolean shouldShowInAppMessagesAutomatically,
                              String dangerousSettingsJSON,
-                             String entitlementVerificationMode) {
+                             String entitlementVerificationMode,
+                             boolean pendingTransactionsForPrepaidPlansEnabled) {
         PurchasesWrapper.gameObject = gameObject;
         PlatformInfo platformInfo = new PlatformInfo(PLATFORM_NAME, PLUGIN_VERSION);
         Store store = useAmazon ? Store.AMAZON : Store.PLAY_STORE;
         DangerousSettings dangerousSettings = getDangerousSettingsFromJSON(dangerousSettingsJSON);
-        CommonKt.configure(UnityPlayer.currentActivity,
-                apiKey, appUserId, observerMode, platformInfo, store, dangerousSettings,
-                shouldShowInAppMessagesAutomatically,
-                entitlementVerificationMode);
+        CommonKt.configure(UnityPlayer.currentActivity, apiKey, appUserId, purchasesAreCompletedBy, platformInfo, store,
+                dangerousSettings, shouldShowInAppMessagesAutomatically, entitlementVerificationMode,
+                pendingTransactionsForPrepaidPlansEnabled);
         Purchases.getSharedInstance().setUpdatedCustomerInfoListener(listener);
     }
 
@@ -210,24 +212,24 @@ public class PurchasesWrapper {
         }
 
         CommonKt.purchaseSubscriptionOption(
-            UnityPlayer.currentActivity,
-            productIdentifer,
-            optionIdentifier,
-            oldSKU,
-            (prorationMode == 0) ? null : prorationMode,
-            isPersonalized,
-            presentedOfferingContext,
-            new OnResult() {
-                @Override
-                public void onReceived(Map<String, ?> map) {
-                    sendJSONObject(MappersHelpersKt.convertToJson(map), MAKE_PURCHASE);
-                }
+                UnityPlayer.currentActivity,
+                productIdentifer,
+                optionIdentifier,
+                oldSKU,
+                (prorationMode == 0) ? null : prorationMode,
+                isPersonalized,
+                presentedOfferingContext,
+                new OnResult() {
+                    @Override
+                    public void onReceived(Map<String, ?> map) {
+                        sendJSONObject(MappersHelpersKt.convertToJson(map), MAKE_PURCHASE);
+                    }
 
-                @Override
-                public void onError(ErrorContainer errorContainer) {
-                    sendErrorPurchase(errorContainer);
-                }
-            });
+                    @Override
+                    public void onError(ErrorContainer errorContainer) {
+                        sendErrorPurchase(errorContainer);
+                    }
+                });
     }
 
     public static void restorePurchases() {
@@ -311,15 +313,35 @@ public class PurchasesWrapper {
         });
     }
 
-    public static void syncObserverModeAmazonPurchase(
+    public static void syncAmazonPurchase(
             String productID,
             String receiptID,
             String amazonUserID,
             String isoCurrencyCode,
             double price
     ) {
-        Purchases.getSharedInstance().syncObserverModeAmazonPurchase(productID, receiptID,
+        Purchases.getSharedInstance().syncAmazonPurchase(productID, receiptID,
                 amazonUserID, isoCurrencyCode, price);
+    }
+
+    public static void getAmazonLWAConsentStatus() {
+        CommonKt.getAmazonLWAConsentStatus(new OnResultAny<Boolean>() {
+            @Override
+            public void onReceived(Boolean amazonLWAConsentStatus) {
+                JSONObject object = new JSONObject();
+                try {
+                    object.put("amazonLWAConsentStatus", amazonLWAConsentStatus);
+                } catch (JSONException e) {
+                    logJSONException(e);
+                }
+                sendJSONObject(object, GET_LWA_CONSENT_STATUS);
+            }
+
+            @Override
+            public void onError(@Nullable ErrorContainer errorContainer) {
+                sendError(errorContainer, GET_LWA_CONSENT_STATUS);
+            }
+        });
     }
 
     public static void setLogLevel(String level) {
@@ -356,12 +378,8 @@ public class PurchasesWrapper {
         CommonKt.getCustomerInfo(getCustomerInfoListener(GET_CUSTOMER_INFO));
     }
 
-    public static void setFinishTransactions(boolean enabled) {
-        CommonKt.setFinishTransactions(enabled);
-    }
-
     public static void syncPurchases() {
-        CommonKt.syncPurchases();
+        CommonKt.syncPurchases(getCustomerInfoListener(SYNC_PURCHASES));
     }
 
     public static boolean isAnonymous() {

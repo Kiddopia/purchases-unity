@@ -60,12 +60,6 @@ public partial class Purchases : MonoBehaviour
              "Use your custom subclass to define how to handle updated customer information.")]
     public UpdatedCustomerInfoListener listener;
 
-    [Tooltip("An optional boolean. Set this to true if you have your own IAP implementation " +
-             "and want to use only RevenueCat's backend.\nDefault is false.\n" +
-             "NOTE: This value will be ignored if \"Use Runtime Setup\" is true. For Runtime Setup, you can configure " +
-             "it through PurchasesConfiguration instead")]
-    public bool observerMode;
-
     [Tooltip("An optional string. iOS only.\n" +
              "Set this to use a specific NSUserDefaults suite for RevenueCat. " +
              "This might be handy if you are deleting all NSUserDefaults in your app " +
@@ -73,6 +67,16 @@ public partial class Purchases : MonoBehaviour
              "NOTE: This value will be ignored if \"Use Runtime Setup\" is true. For Runtime Setup, you can configure " +
              "it through PurchasesConfiguration instead")]
     public string userDefaultsSuiteName;
+
+    [Tooltip("Set this to MyApp and provide a StoreKitVersion if you have your own IAP implementation and\n" +
+             "want to only use RevenueCat's backend. Defaults to PurchasesAreCompletedBy.RevenueCat\n." +
+             "If you are on Android and setting this to MyApp, you will have to acknowledge the purchases yourself.\n" +
+             "If your app is only on Android, you may specify any StoreKit version, as it is ignored by the Android SDK.")]
+    public PurchasesAreCompletedBy purchasesAreCompletedBy = PurchasesAreCompletedBy.RevenueCat;
+
+    [Tooltip("Version of StoreKit to use in iOS. By default, RevenueCat will decide for you.\n" +
+             "Set this if you're setting PurchasesAreCompletedBy to MyApp.")]
+    public StoreKitVersion storeKitVersion = StoreKitVersion.Default;
 
     [Tooltip("Whether we should show store in-app messages automatically. Both Google Play and the App Store provide in-app " +
              "messages for some situations like billing issues. By default, those messages will be shown automatically.\n" +
@@ -83,29 +87,16 @@ public partial class Purchases : MonoBehaviour
     [Tooltip("The entitlement verification mode to use. For more information, check: https://rev.cat/trusted-entitlements")]
     public EntitlementVerificationMode entitlementVerificationMode = EntitlementVerificationMode.Disabled;
 
+    [Tooltip("Enable this setting if you want to allow pending purchases for prepaid subscriptions (only supported " +
+             "in Google Play). Note that entitlements are not granted until payment is done. Disabled by default.")]
+    public bool pendingTransactionsForPrepaidPlansEnabled = false;
+
     [Header("Advanced")]
     [Tooltip("Set this property to your proxy URL before configuring Purchases *only* if you've received " +
              "a proxy key value from your RevenueCat contact.\n" +
              "NOTE: This value will be ignored if \"Use Runtime Setup\" is true. For Runtime Setup, you can configure " +
              "it through PurchasesConfiguration instead")]
     public string proxyURL;
-
-    [Header("⚠️ Deprecated")]
-    [Tooltip("⚠️ RevenueCat currently uses StoreKit 1 for purchases, as its stability in production " +
-             "scenarios has proven to be more performant than StoreKit 2.\n" +
-             "We're collecting more data on the best approach, but StoreKit 1 vs StoreKit 2 is \n" +
-             "an implementation detail that you shouldn't need to care about.\n" +
-             "We recommend not using this parameter, letting RevenueCat decide for " +
-             "you which StoreKit implementation to use.\n" +
-             "NOTE: This value will be ignored if \"Use Runtime Setup\" is true. For Runtime Setup, you can configure " +
-             "it through PurchasesConfiguration instead")]
-    [Obsolete("RevenueCat currently uses StoreKit 1 for purchases, as its stability in production " +
-              "scenarios has proven to be more performant than StoreKit 2.\n" +
-              "We're collecting more data on the best approach, but StoreKit 1 vs StoreKit 2 is \n" +
-              "an implementation detail that you shouldn't need to care about.\n" +
-              "We recommend not using this parameter, letting RevenueCat decide for " +
-              "you which StoreKit implementation to use.", false)]
-    public bool usesStoreKit2IfAvailable;
 
     private IPurchasesWrapper _wrapper;
 
@@ -140,14 +131,20 @@ public partial class Purchases : MonoBehaviour
                  || IsAndroidEmulator())
             apiKey = useAmazon ? revenueCatAPIKeyAmazon : revenueCatAPIKeyGoogle;
 
+        if (purchasesAreCompletedBy == PurchasesAreCompletedBy.MyApp && storeKitVersion == StoreKitVersion.Default)
+        {
+            Debug.Log("You must set a StoreKit version if you are setting PurchasesAreCompletedBy to MyApp. For Android, it doesn't matter which");
+            return;
+        }
+
         var dangerousSettings = new DangerousSettings(autoSyncPurchases);
         var builder = PurchasesConfiguration.Builder.Init(apiKey)
             .SetAppUserId(newUserId)
-            .SetObserverMode(observerMode)
+            .SetPurchasesAreCompletedBy(purchasesAreCompletedBy, storeKitVersion)
             .SetUserDefaultsSuiteName(userDefaultsSuiteName)
             .SetUseAmazon(useAmazon)
             .SetDangerousSettings(dangerousSettings)
-            .SetUsesStoreKit2IfAvailable(usesStoreKit2IfAvailable)
+            .SetStoreKitVersion(storeKitVersion)
             .SetShouldShowInAppMessagesAutomatically(shouldShowInAppMessagesAutomatically)
             .SetEntitlementVerificationMode(entitlementVerificationMode);
 
@@ -193,9 +190,9 @@ public partial class Purchases : MonoBehaviour
     {
         var dangerousSettings = purchasesConfiguration.DangerousSettings.Serialize().ToString();
         _wrapper.Setup(gameObject.name, purchasesConfiguration.ApiKey, purchasesConfiguration.AppUserId,
-            purchasesConfiguration.ObserverMode, purchasesConfiguration.UsesStoreKit2IfAvailable, purchasesConfiguration.UserDefaultsSuiteName,
+            purchasesConfiguration.PurchasesAreCompletedBy, purchasesConfiguration.StoreKitVersion, purchasesConfiguration.UserDefaultsSuiteName,
             purchasesConfiguration.UseAmazon, dangerousSettings, purchasesConfiguration.ShouldShowInAppMessagesAutomatically,
-            purchasesConfiguration.EntitlementVerificationMode);
+            purchasesConfiguration.EntitlementVerificationMode, purchasesConfiguration.PendingTransactionsForPrepaidPlansEnabled);
     }
 
     private bool IsAndroidEmulator()
@@ -514,22 +511,6 @@ public partial class Purchases : MonoBehaviour
     }
 
     // ReSharper disable once UnusedMember.Global
-    /// <summary>
-    /// Whether transactions should be finished automatically. `true` by default.
-    /// </summary>
-    /// <remarks>
-    /// Warning: Setting this value to `false` will prevent the SDK from finishing transactions.
-    /// In this case, you *must* finish transactions in your app, otherwise they will remain in the queue and
-    /// will turn up every time the app is opened.
-    /// More information on finishing transactions manually [is available here](https://rev.cat/finish-transactions).
-    /// </remarks>
-    /// <param name="finishTransactions"> Whether transactions should be finished automatically. </param>
-    public void SetFinishTransactions(bool finishTransactions)
-    {
-        _wrapper.SetFinishTransactions(finishTransactions);
-    }
-
-    // ReSharper disable once UnusedMember.Global
     [Obsolete("Deprecated, configure behavior through the RevenueCat Dashboard instead.")]
     public void SetAllowSharingStoreAccount(bool allow)
     {
@@ -688,6 +669,36 @@ public partial class Purchases : MonoBehaviour
         _wrapper.SyncPurchases();
     }
 
+    private CustomerInfoFunc SyncPurchasesCallback { get; set; }
+
+    /// <summary>
+    /// This method will post all purchases associated with the current App Store account to RevenueCat and
+    /// become associated with the current <c>appUserID</c>.
+    /// </summary>
+    ///
+    /// If the receipt is being used by an existing user, the current <c>appUserID</c> will be aliased together with
+    /// the <c>appUserID</c> of the existing user.
+    /// Going forward, either <c>appUserID</c> will be able to reference the same user.
+    ///
+    /// <remarks>
+    /// Warning: This function should only be called if you're not calling any purchase method.
+    /// </remarks>
+    ///
+    /// <remarks>
+    /// Note: This method will not trigger a login prompt from App Store. However, if the receipt currently
+    /// on the device does not contain subscriptions, but the user has made subscription purchases, this method
+    /// won't be able to restore them. Use <see cref="RestorePurchases"/> to cover those cases.
+    /// </remarks>
+    /// <seealso href="https://docs.revenuecat.com/docs/restoring-purchases"/>
+    ///
+    /// <param name="callback"> A <see cref="CustomerInfoFunc"/> which will contain a <see cref="CustomerInfo"/>
+    /// if sync was successful, or an error otherwise. </param>
+    public void SyncPurchases(CustomerInfoFunc callback)
+    {
+        SyncPurchasesCallback = callback;
+        _wrapper.SyncPurchases();
+    }
+
     /// <summary>
     /// Android only. Noop in iOS.
     ///
@@ -700,20 +711,29 @@ public partial class Purchases : MonoBehaviour
     /// <param name="amazonUserID">Amazon's userID.</param>
     /// <param name="isoCurrencyCode">Product's currency code in ISO 4217 format.</param>
     /// <param name="price">Product's price.</param>
+    [Obsolete("Deprecated, use SyncAmazonPurchase instead.")]
     public void SyncObserverModeAmazonPurchase(string productID, string receiptID, string amazonUserID,
         string isoCurrencyCode, double price)
     {
-        _wrapper.SyncObserverModeAmazonPurchase(productID, receiptID, amazonUserID, isoCurrencyCode, price);
+        _wrapper.SyncAmazonPurchase(productID, receiptID, amazonUserID, isoCurrencyCode, price);
     }
 
-    // ReSharper disable once UnusedMember.Global
     /// <summary>
-    /// Enable automatic collection of Apple Search Ads attribution. Defaults to `false`.
+    /// Android only. Noop in iOS.
+    ///
+    /// This method will send a purchase to the RevenueCat backend. This function should only be called if you are
+    /// in Amazon observer mode or performing a client side migration of your current users to RevenueCat.
+    /// The receipt IDs are cached if successfully posted so they are not posted more than once.
     /// </summary>
-    /// <param name="searchAdsAttributionEnabled"> Whether to enable automatic collection of Apple Search Ads attribution.</param>
-    public void SetAutomaticAppleSearchAdsAttributionCollection(bool searchAdsAttributionEnabled)
+    /// <param name="productID">Product ID associated to the purchase.</param>
+    /// <param name="receiptID"> ReceiptId that represents the Amazon purchase.</param>
+    /// <param name="amazonUserID">Amazon's userID.</param>
+    /// <param name="isoCurrencyCode">Product's currency code in ISO 4217 format.</param>
+    /// <param name="price">Product's price.</param>
+    public void SyncAmazonPurchase(string productID, string receiptID, string amazonUserID,
+        string isoCurrencyCode, double price)
     {
-        _wrapper.SetAutomaticAppleSearchAdsAttributionCollection(searchAdsAttributionEnabled);
+        _wrapper.SyncAmazonPurchase(productID, receiptID, amazonUserID, isoCurrencyCode, price);
     }
 
     // ReSharper disable once UnusedMember.Global
@@ -790,6 +810,31 @@ public partial class Purchases : MonoBehaviour
     public void PresentCodeRedemptionSheet()
     {
         _wrapper.PresentCodeRedemptionSheet();
+    }
+
+    /// <summary>
+    /// Callback for <see cref="Purchases.RecordPurchase"/>.
+    /// </summary>
+    /// <param name="transaction"> The <see cref="StoreTransaction"/> object if the request was successful, null otherwise.</param>
+    /// <param name="error"> The error if the request was unsuccessful, null otherwise.</param>
+    public delegate void RecordPurchaseFunc(StoreTransaction transaction, Error error);
+
+    private RecordPurchaseFunc RecordPurchaseCallback { get; set; }
+
+    /// <summary>
+    /// iOS only. Always returns an error on iOS < 15.
+    /// Use this method only if you already have your own IAP implementation using StoreKit 2 and want to use
+    /// RevenueCat's backend. If you are using StoreKit 1 for your implementation, you do not need this method.
+    /// You only need to use this method with *new* purchases. Subscription updates are observed automatically.
+    /// Important: This should only be used if you have set PurchasesAreCompletedBy to MyApp during SDK configuration.
+    /// Important: You need to finish the transaction yourself after calling this method.
+    /// </summary>
+    /// <param name="productID">Product ID that was just purchased.</param>
+    /// <param name="callback"> A completion block called when the purchase has been recorded, with either a success or an error.</param>
+    public void RecordPurchase(string productID, RecordPurchaseFunc callback)
+    {
+        RecordPurchaseCallback = callback;
+        _wrapper.RecordPurchase(productID);
     }
 
     ///
@@ -1116,6 +1161,35 @@ public partial class Purchases : MonoBehaviour
     }
 
     /// <summary>
+    /// Callback function containing the result of GetAmazonLWAConsentStatus
+    /// </summary>
+    ///
+    /// <param name="hasConsented">A bool value indicating whether user has given consent to
+    /// Login with Amazon.
+    /// </param>
+    /// <param name="error">An Error object or null if successful.</param>
+    public delegate void GetAmazonLWAConsentStatusFunc(bool hasConsented, Error error);
+
+    private GetAmazonLWAConsentStatusFunc GetAmazonLWAConsentStatusCallback { get; set; }
+
+    /// <summary>
+    /// Get the Login with Amazon consent status for the current user. Used to implement one-click account creation
+    /// using Quick Subscribe.
+    ///
+    /// For more information, check the documentation:
+    /// https://rev.cat/amazon-quicksubscribe
+    ///
+    /// Note: This method only works for the Amazon Appstore. There is no Google equivalent at this time.
+    /// Calling from a Google-configured app will always return False.
+    /// </summary>
+    /// <param name="callback">A callback receiving a bool for hasConsented and potentially an Error</param>
+    public void GetAmazonLWAConsentStatus(GetAmazonLWAConsentStatusFunc callback)
+    {
+        GetAmazonLWAConsentStatusCallback = callback;
+        _wrapper.GetAmazonLWAConsentStatus();
+    }
+
+    /// <summary>
     /// Callback function containing the result of GetPromotionalOffer
     /// </summary>
     ///
@@ -1256,6 +1330,13 @@ public partial class Purchases : MonoBehaviour
         RestorePurchasesCallback = null;
     }
 
+    private void _syncPurchases(string customerInfoJson)
+    {
+        Debug.Log("_syncPurchases " + customerInfoJson);
+        ReceiveCustomerInfoMethod(customerInfoJson, SyncPurchasesCallback);
+        SyncPurchasesCallback = null;
+    }
+
     // ReSharper disable once UnusedMember.Local
     private void _logIn(string logInResultJson)
     {
@@ -1309,6 +1390,28 @@ public partial class Purchases : MonoBehaviour
         CheckTrialOrIntroductoryPriceEligibilityCallback = null;
     }
 
+    private void _recordPurchase(string json)
+    {
+        Debug.Log("_recordPurchase " + json);
+
+        if (RecordPurchaseCallback == null) return;
+
+        var response = JSON.Parse(json);
+
+        if (ResponseHasError(response))
+        {
+            RecordPurchaseCallback(null, new Error(response["error"]));
+        }
+        else
+        {
+            var transaction = new StoreTransaction(response["transaction"]);
+
+            RecordPurchaseCallback(transaction, null);
+        }
+
+        RecordPurchaseCallback = null;
+    }
+
     private void _canMakePayments(string canMakePaymentsJson)
     {
         Debug.Log("_canMakePayments" + canMakePaymentsJson);
@@ -1328,6 +1431,27 @@ public partial class Purchases : MonoBehaviour
         }
 
         CanMakePaymentsCallback = null;
+    }
+
+    private void _getAmazonLWAConsentStatus(string getAmazonLWAConsentStatusJson)
+    {
+        Debug.Log("_getAmazonLWAConsentStatus" + getAmazonLWAConsentStatusJson);
+
+        if (GetAmazonLWAConsentStatusCallback == null) return;
+
+        var response = JSON.Parse(getAmazonLWAConsentStatusJson);
+
+        if (ResponseHasError(response))
+        {
+            GetAmazonLWAConsentStatusCallback(false, new Error(response["error"]));
+        }
+        else
+        {
+            var amazonLWAConsentStatus = response["amazonLWAConsentStatus"];
+            GetAmazonLWAConsentStatusCallback(amazonLWAConsentStatus, null);
+        }
+
+        GetAmazonLWAConsentStatusCallback = null;
     }
 
     private void _getPromotionalOffer(string getPromotionalOfferJson)

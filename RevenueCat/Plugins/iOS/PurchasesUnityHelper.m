@@ -24,6 +24,8 @@ static NSString *const CHECK_ELIGIBILITY = @"_checkTrialOrIntroductoryPriceEligi
 static NSString *const CAN_MAKE_PAYMENTS = @"_canMakePayments";
 static NSString *const GET_PROMOTIONAL_OFFER = @"_getPromotionalOffer";
 static NSString *const HANDLE_LOG = @"_handleLog";
+static NSString *const RECORD_PURCHASE = @"_recordPurchase";
+static NSString *const SYNC_PURCHASES = @"_syncPurchases";
 
 #pragma mark Utility Methods
 
@@ -63,8 +65,8 @@ char *makeStringCopy(NSString *nstring) {
 - (void)setupPurchases:(NSString *)apiKey
              appUserID:(nullable NSString *)appUserID
             gameObject:(NSString *)gameObject
-          observerMode:(BOOL)observerMode
-usesStoreKit2IfAvailable:(BOOL)usesStoreKit2IfAvailable
+purchasesAreCompletedBy:(NSString *)purchasesAreCompletedBy
+       storeKitVersion:(NSString *)storeKitVersion
  userDefaultsSuiteName:(nullable NSString *)userDefaultsSuiteName
  dangerousSettingsJson:(NSString *)dangerousSettingsJson
  shouldShowInAppMessagesAutomatically:(BOOL)shouldShowInAppMessagesAutomatically
@@ -88,11 +90,11 @@ usesStoreKit2IfAvailable:(BOOL)usesStoreKit2IfAvailable
 
     [RCPurchases configureWithAPIKey:apiKey
                            appUserID:appUserID
-                        observerMode:observerMode
+             purchasesAreCompletedBy:purchasesAreCompletedBy
                userDefaultsSuiteName:userDefaultsSuiteName
                       platformFlavor:self.platformFlavor
                platformFlavorVersion:self.platformFlavorVersion
-            usesStoreKit2IfAvailable:usesStoreKit2IfAvailable
+                     storeKitVersion:storeKitVersion
                    dangerousSettings:dangerousSettings
 shouldShowInAppMessagesAutomatically:shouldShowInAppMessagesAutomatically
                     verificationMode:entitlementVerificationMode];
@@ -159,10 +161,7 @@ signedDiscountTimestamp:(NSString *)signedDiscountTimestamp {
     // on Android, syncPurchases doesn't have a completion block. So instead of
     // calling getCustomerInfoCompletionBlockFor:SYNC_PURCHASES, we just
     // print the response, to match Android behavior.
-    [RCCommonFunctionality syncPurchasesWithCompletionBlock:^(NSDictionary *_Nullable responseDictionary, RCErrorContainer *_Nullable error) {
-        NSLog(@"received syncPurchases response: \n customerInfo: %@ \n error:%@", responseDictionary, error);
-        UnitySendMessage(self.gameObject.UTF8String, SYNC_COMPLETE.UTF8String, "");
-    }];
+    [RCCommonFunctionality syncPurchasesWithCompletionBlock:[self getCustomerInfoCompletionBlockFor:SYNC_PURCHASES]];
 }
 
 - (void)logInWithAppUserID:(NSString *)appUserID {
@@ -239,14 +238,6 @@ signedDiscountTimestamp:(NSString *)signedDiscountTimestamp {
     [RCCommonFunctionality getCustomerInfoWithCompletionBlock:[self getCustomerInfoCompletionBlockFor:GET_CUSTOMER_INFO]];
 }
 
--  (void)setFinishTransactions:(BOOL)finishTransactions {
-    [RCCommonFunctionality setFinishTransactions:finishTransactions];
-}
-
-- (void)setAutomaticAppleSearchAdsAttributionCollection:(BOOL)enabled {
-    [RCCommonFunctionality setAutomaticAppleSearchAdsAttributionCollection:enabled];
-}
-
 - (void)enableAdServicesAttributionTokenCollection {
     if (@available(iOS 14.3, macOS 11.1, macCatalyst 14.3, *)) {
         [RCCommonFunctionality enableAdServicesAttributionTokenCollection];
@@ -290,6 +281,19 @@ signedDiscountTimestamp:(NSString *)signedDiscountTimestamp {
      } else {
          NSLog(@"[Purchases] Warning: tried to present codeRedemptionSheet, but it's only available on iOS 14.0 or greater.");
      }
+}
+
+- (void)recordPurchase:(NSString *)productID {
+    [RCCommonFunctionality recordPurchaseForProductID:productID completion:^(NSDictionary *_Nullable responseDictionary, RCErrorContainer *_Nullable error) {
+        NSMutableDictionary *response = [NSMutableDictionary new];
+        if (error) {
+            response[@"error"] = error.info;
+        } else {
+            response[@"transaction"] = responseDictionary;
+        }
+
+        [self sendJSONObject:response toMethod:RECORD_PURCHASE];
+    }];
 }
 
 - (void)setSimulatesAskToBuyInSandbox:(BOOL)enabled {
@@ -487,7 +491,7 @@ signedDiscountTimestamp:(NSString *)signedDiscountTimestamp {
 }
 
 - (NSString *)platformFlavorVersion {
-    return @"6.9.7";
+    return @"7.1.0";
 }
 
 @end
@@ -506,8 +510,8 @@ static RCUnityHelperDelegate *_RCUnityHelperShared() {
 void _RCSetupPurchases(const char *gameObject,
                        const char *apiKey,
                        const char *appUserID,
-                       const BOOL observerMode,
-                       const BOOL usesStoreKit2IfAvailable,
+                       const char *purchasesAreCompletedBy,
+                       const char *storeKitVersion,
                        const char *userDefaultsSuiteName,
                        const char *dangerousSettingsJson,
                        const BOOL shouldShowInAppMessagesAutomatically,
@@ -515,8 +519,8 @@ void _RCSetupPurchases(const char *gameObject,
     [_RCUnityHelperShared() setupPurchases:convertCString(apiKey)
                                  appUserID:convertCString(appUserID)
                                 gameObject:convertCString(gameObject)
-                              observerMode:observerMode
-                  usesStoreKit2IfAvailable:usesStoreKit2IfAvailable
+                   purchasesAreCompletedBy:convertCString(purchasesAreCompletedBy)
+                           storeKitVersion:convertCString(storeKitVersion)
                      userDefaultsSuiteName:convertCString(userDefaultsSuiteName)
                      dangerousSettingsJson:convertCString(dangerousSettingsJson)
       shouldShowInAppMessagesAutomatically:shouldShowInAppMessagesAutomatically
@@ -570,9 +574,6 @@ void _RCLogOut() {
     [_RCUnityHelperShared() logOut];
 }
 
-void _RCSetFinishTransactions(const BOOL finishTransactions) {
-    [_RCUnityHelperShared() setFinishTransactions:finishTransactions];
-}
 void _RCSetAllowSharingStoreAccount(const BOOL allow) {
     [_RCUnityHelperShared() setAllowSharingStoreAccount:allow];
 }
@@ -605,6 +606,10 @@ void _RCSetProxyURLString(const char *proxyURLString) {
     [_RCUnityHelperShared() setProxyURLString:convertCString(proxyURLString)];
 }
 
+void _RCRecordPurchase(const char *productID) {
+    [_RCUnityHelperShared() recordPurchase:convertCString(productID)];
+}
+
 void _RCSetSimulatesAskToBuyInSandbox(const BOOL enabled) {
     [_RCUnityHelperShared() setSimulatesAskToBuyInSandbox:enabled];
 }
@@ -615,10 +620,6 @@ void _RCGetCustomerInfo() {
 
 char * _RCGetAppUserID() {
     return [_RCUnityHelperShared() getAppUserID];
-}
-
-void _RCSetAutomaticAppleSearchAdsAttributionCollection(const BOOL enabled) {
-    [_RCUnityHelperShared() setAutomaticAppleSearchAdsAttributionCollection:enabled];
 }
 
 void _RCEnableAdServicesAttributionTokenCollection() {
