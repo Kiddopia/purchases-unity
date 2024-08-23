@@ -640,35 +640,6 @@ public partial class Purchases : MonoBehaviour
         _wrapper.GetOfferings();
     }
 
-    public delegate void SyncCompleteFunc();
-    private SyncCompleteFunc GetSyncCompleteCallback { get; set; }
-
-    /// <summary>
-    /// This method will post all purchases associated with the current App Store account to RevenueCat and
-    /// become associated with the current <c>appUserID</c>.
-    /// </summary>
-    ///
-    /// If the receipt is being used by an existing user, the current <c>appUserID</c> will be aliased together with
-    /// the <c>appUserID</c> of the existing user.
-    /// Going forward, either <c>appUserID</c> will be able to reference the same user.
-    ///
-    /// <remarks>
-    /// Warning: This function should only be called if you're not calling any purchase method.
-    /// </remarks>
-    ///
-    /// <remarks>
-    /// Note: This method will not trigger a login prompt from App Store. However, if the receipt currently
-    /// on the device does not contain subscriptions, but the user has made subscription purchases, this method
-    /// won't be able to restore them. Use <see cref="RestorePurchases"/> to cover those cases.
-    /// </remarks>
-    /// <seealso href="https://docs.revenuecat.com/docs/restoring-purchases"/>
-    ///
-    public void SyncPurchases(SyncCompleteFunc callback)
-    {
-        GetSyncCompleteCallback = callback;
-        _wrapper.SyncPurchases();
-    }
-
     private CustomerInfoFunc SyncPurchasesCallback { get; set; }
 
     /// <summary>
@@ -1281,15 +1252,6 @@ public partial class Purchases : MonoBehaviour
         }
 
         MakePurchaseCallback = null;
-    }
-
-
-    private void _syncCompleted(string ignoreThis)
-    {
-        Debug.Log("_syncCompleted ");
-        if (GetSyncCompleteCallback is null) return;
-        GetSyncCompleteCallback();
-        GetSyncCompleteCallback = null;
     }
 
     // ReSharper disable once UnusedMember.Local

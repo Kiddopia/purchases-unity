@@ -29,8 +29,6 @@ static NSString *const SYNC_PURCHASES = @"_syncPurchases";
 
 #pragma mark Utility Methods
 
-static NSString *const SYNC_COMPLETE = @"_syncCompleted";
-
 NSString *convertCString(const char *string) {
     if (string)
         return [NSString stringWithUTF8String:string];
