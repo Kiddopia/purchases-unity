@@ -1,3 +1,50 @@
+## 7.3.0
+## RevenueCat SDK
+### 🐞 Bugfixes
+* Fix metadata values types (#523) via Cesar de la Vega (@vegaro)
+### 📦 Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.7.0 (#524) via RevenueCat Git Bot (@RCGitBot)
+* Bump rexml from 3.3.8 to 3.3.9 (#520) via dependabot[bot] (@dependabot[bot])
+* Bump danger from 9.5.0 to 9.5.1 (#518) via dependabot[bot] (@dependabot[bot])
+* Bump fastlane from 2.224.0 to 2.225.0 (#517) via dependabot[bot] (@dependabot[bot])
+### Win-back Offers
+#### ✨ New Features
+* Support displaying deferred win-back StoreKit messages (#522) via Will Taylor (@fire-at-will)
+
+### 🔄 Other Changes
+* Adds docs to `StoreProduct` (#521) via Cesar de la Vega (@vegaro)
+
+## 7.2.1
+## RevenueCat SDK
+### 📦 Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.5.0 (#513) via RevenueCat Git Bot (@RCGitBot)
+* Bump fastlane from 2.223.1 to 2.224.0 (#512) via dependabot[bot] (@dependabot[bot])
+
+## 7.2.0
+## RevenueCat SDK
+### ✨ New Features
+* Add visionOS support (#471) via Andy Boedo (@aboedo)
+### 📦 Dependency Updates
+* Bump fastlane from 2.222.0 to 2.223.1 (#509) via dependabot[bot] (@dependabot[bot])
+
+## 7.1.2
+## RevenueCat SDK
+### 📦 Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.3.0 (#507) via RevenueCat Git Bot (@RCGitBot)
+
+## 7.1.1
+## RevenueCat SDK
+### 📦 Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.2.1 (#504) via RevenueCat Git Bot (@RCGitBot)
+* Bump rexml from 3.3.3 to 3.3.6 (#496) via dependabot[bot] (@dependabot[bot])
+
+### 🔄 Other Changes
+* Bump fastlane-plugin-revenuecat_internal from 5140dbc to 55a0455 (#505) via Cesar de la Vega (@vegaro)
+* Update allowSharingAppStoreAccount Deprecation Message (#503) via Will Taylor (@fire-at-will)
+* Update fastlane-plugin-revenuecat_internal (#501) via Cesar de la Vega (@vegaro)
+* Update VERSIONS.md to remove compatibility with Unity IAP for BC7 (#500) via Cesar de la Vega (@vegaro)
+* [PurchaseTester] Add button to test the GetAmazonLWAConsentStatus method (#498) via Mark Villacampa (@MarkVillacampa)
+
 ## 7.1.0
 ### New Features
 * Add SyncPurchases method overload that accepts a callback as parameter (#493) via Mark Villacampa (@MarkVillacampa)
