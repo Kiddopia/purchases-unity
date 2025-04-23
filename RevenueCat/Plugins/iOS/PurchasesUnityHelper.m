@@ -10,6 +10,7 @@
 @import PurchasesHybridCommon;
 @import RevenueCat;
 
+static NSString *const RECEIVE_STOREFRONT = @"_receiveStorefront";
 static NSString *const RECEIVE_PRODUCTS = @"_receiveProducts";
 static NSString *const RECEIVE_CUSTOMER_INFO = @"_receiveCustomerInfo";
 static NSString *const RESTORE_PURCHASES = @"_restorePurchases";
@@ -26,7 +27,12 @@ static NSString *const GET_PROMOTIONAL_OFFER = @"_getPromotionalOffer";
 static NSString *const HANDLE_LOG = @"_handleLog";
 static NSString *const RECORD_PURCHASE = @"_recordPurchase";
 static NSString *const SYNC_PURCHASES = @"_syncPurchases";
-
+static NSString *const PARSE_AS_WEB_PURCHASE_REDEMPTION = @"_parseAsWebPurchaseRedemption";
+static NSString *const REDEEM_WEB_PURCHASE = @"_redeemWebPurchase";
+static NSString *const GET_ELIGIBLE_WIN_BACK_OFFERS_FOR_PRODUCT = @"_getEligibleWinBackOffersForProduct";
+static NSString *const GET_ELIGIBLE_WIN_BACK_OFFERS_FOR_PACKAGE = @"_getEligibleWinBackOffersForPackage";
+static NSString *const PURCHASE_PRODUCT_WITH_WIN_BACK_OFFER = @"_purchaseProductWithWinBackOffer";
+static NSString *const PURCHASE_PACKAGE_WITH_WIN_BACK_OFFER = @"_purchasePackageWithWinBackOffer";
 #pragma mark Utility Methods
 
 NSString *convertCString(const char *string) {
@@ -108,6 +114,16 @@ shouldShowInAppMessagesAutomatically:shouldShowInAppMessagesAutomatically
             @"products": productObjects
         };
         [self sendJSONObject:response toMethod:RECEIVE_PRODUCTS];
+    }];
+}
+
+- (void)getStorefront {
+    [RCCommonFunctionality getStorefrontWithCompletion:^(NSDictionary *_Nullable responseDictionary) {
+        if (responseDictionary == nil) {
+            [self sendEmptyResponseToMethod:RECEIVE_STOREFRONT];
+        } else {
+            [self sendJSONObject:responseDictionary toMethod:RECEIVE_STOREFRONT];
+        }
     }];
 }
 
@@ -440,7 +456,149 @@ signedDiscountTimestamp:(NSString *)signedDiscountTimestamp {
     #endif
 }
 
+- (void)getEligibleWinBackOffersForProduct:(NSString *)productIdentifier {
+    // Checking for win-back offer APIs being available in the current OS is handled at the PHC level.
+    [RCCommonFunctionality eligibleWinBackOffersForProductIdentifier:productIdentifier
+                                                     completionBlock:^(NSArray<NSDictionary *> * _Nullable eligibleWinBackOffers, RCErrorContainer * _Nullable errorContainer) {
+
+        RCErrorContainer *finalErrorContainer = errorContainer;
+        if (eligibleWinBackOffers == nil && errorContainer == nil) {
+            NSError *nsError = [[NSError alloc] initWithDomain:RCPurchasesErrorCodeDomain
+                                                          code:RCUnknownError
+                                                      userInfo:@{NSLocalizedDescriptionKey: @"Both error and response are nil"}];
+            finalErrorContainer = [[RCErrorContainer alloc] initWithError:nsError extraPayload:@{}];
+        }
+
+        // Send error if present
+        if (finalErrorContainer != nil) {
+            NSDictionary *response = @{@"error": finalErrorContainer.info};
+            [self sendJSONObject:response toMethod:GET_ELIGIBLE_WIN_BACK_OFFERS_FOR_PRODUCT];
+            return;
+        }
+
+        // Send response dictionary if present
+        NSArray *offers = eligibleWinBackOffers ?: @[];
+        NSDictionary *response = @{@"eligibleWinBackOffers": offers};
+        [self sendJSONObject:response toMethod:GET_ELIGIBLE_WIN_BACK_OFFERS_FOR_PRODUCT];
+    }];
+}
+
+// This function accepts a product identifier since the PHC code only fetches eligible win-back offers for products
+- (void)getEligibleWinBackOffersForPackage:(NSString *)productIdentifier {
+    // Checking for win-back offer API availability in the current OS is handled at the PHC level.
+    [RCCommonFunctionality eligibleWinBackOffersForProductIdentifier:productIdentifier
+                                                     completionBlock:^(NSArray<NSDictionary *> * _Nullable eligibleWinBackOffers, RCErrorContainer * _Nullable errorContainer) {
+
+        RCErrorContainer *finalErrorContainer = errorContainer;
+        if (eligibleWinBackOffers == nil && errorContainer == nil) {
+            NSError *nsError = [[NSError alloc] initWithDomain:RCPurchasesErrorCodeDomain
+                                                          code:RCUnknownError
+                                                      userInfo:@{NSLocalizedDescriptionKey: @"Both error and response are nil"}];
+            finalErrorContainer = [[RCErrorContainer alloc] initWithError:nsError extraPayload:@{}];
+        }
+
+        // Send error if present
+        if (finalErrorContainer != nil) {
+            NSDictionary *response = @{@"error": finalErrorContainer.info};
+            [self sendJSONObject:response toMethod:GET_ELIGIBLE_WIN_BACK_OFFERS_FOR_PACKAGE];
+            return;
+        }
+
+        // Send response dictionary if present
+        NSArray *offers = eligibleWinBackOffers ?: @[];
+        NSDictionary *response = @{@"eligibleWinBackOffers": offers};
+        [self sendJSONObject:response toMethod:GET_ELIGIBLE_WIN_BACK_OFFERS_FOR_PACKAGE];
+    }];
+}
+
+- (void)purchaseProductWithWinBackOffer:(NSString *)productIdentifier winBackOfferIdentifier:(NSString *)winBackOfferIdentifier {
+    // Checking for win-back offer API availability in the current OS is handled at the PHC level.
+    [RCCommonFunctionality purchaseProduct:productIdentifier
+                            winBackOfferID:winBackOfferIdentifier
+                           completionBlock:^(NSDictionary *_Nullable responseDictionary, RCErrorContainer *_Nullable error) {
+        NSMutableDictionary *response;
+        if (error) {
+            response = [NSMutableDictionary new];
+            response[@"error"] = error.info;
+            response[@"userCancelled"] = error.info[@"userCancelled"];
+        } else {
+            response = [NSMutableDictionary dictionaryWithDictionary:responseDictionary];
+            response[@"userCancelled"] = false;
+        }
+        [self sendJSONObject:response toMethod:PURCHASE_PRODUCT_WITH_WIN_BACK_OFFER];
+    }];
+}
+
+- (void)purchasePackageWithWinBackOffer:(NSString *)packageIdentifier presentedOfferingContextJson:(NSString *)presentedOfferingContextJson winBackOfferIdentifier:(NSString *)winBackOfferIdentifier {
+    NSError *jsonError = nil;
+    NSData *jsonData = [presentedOfferingContextJson dataUsingEncoding:NSUTF8StringEncoding];
+    NSDictionary *presentedOfferingContextDict = [NSJSONSerialization JSONObjectWithData:jsonData
+                                                                                 options:0
+                                                                                   error:&jsonError];
+    if (jsonError) {
+        NSLog(@"Error parsing presentedOfferingContext JSON: %@ %@", presentedOfferingContextJson, jsonError.localizedDescription);
+        NSError *nsError = [[NSError alloc] initWithDomain:RCPurchasesErrorCodeDomain
+                                                      code:jsonError
+                                                  userInfo:@{NSLocalizedDescriptionKey: @"Failed to parse presentedOfferingContext"}];
+        RCErrorContainer *errorContainer = [[RCErrorContainer alloc] initWithError:nsError extraPayload:@{}];
+        NSDictionary *response = @{@"error": errorContainer.info};
+        [self sendJSONObject:response toMethod:PURCHASE_PACKAGE_WITH_WIN_BACK_OFFER];
+        return;
+    }
+
+    // Checking for win-back offer API availability in the current OS is handled at the PHC level.
+    [RCCommonFunctionality purchasePackage:packageIdentifier
+                  presentedOfferingContext:presentedOfferingContextDict
+                            winBackOfferID:winBackOfferIdentifier
+                           completionBlock:^(NSDictionary *_Nullable responseDictionary, RCErrorContainer *_Nullable error) {
+        NSMutableDictionary *response;
+        if (error) {
+            response = [NSMutableDictionary new];
+            response[@"error"] = error.info;
+            response[@"userCancelled"] = error.info[@"userCancelled"];
+        } else {
+            response = [NSMutableDictionary dictionaryWithDictionary:responseDictionary];
+            response[@"userCancelled"] = false;
+        }
+        [self sendJSONObject:response toMethod:PURCHASE_PACKAGE_WITH_WIN_BACK_OFFER];
+    }];
+}
+
+- (void)parseAsWebPurchaseRedemption:(NSString *)urlString {
+    BOOL isWebPurchaseRedemptionURL = [RCCommonFunctionality isWebPurchaseRedemptionURL:urlString];
+    if (isWebPurchaseRedemptionURL) {
+        [self sendJSONObject:@{@"redemptionLink": urlString} toMethod:PARSE_AS_WEB_PURCHASE_REDEMPTION];
+    } else {
+        [self sendJSONObject:nil toMethod:PARSE_AS_WEB_PURCHASE_REDEMPTION];
+    }
+}
+
+- (void)redeemWebPurchase:(NSString *)redemptionLink {
+    [RCCommonFunctionality redeemWebPurchaseWithUrlString:redemptionLink
+                                               completion:^(NSDictionary *_Nullable responseDictionary,
+                                                            RCErrorContainer *_Nullable error) {
+        if (error == nil && responseDictionary == nil) {
+            NSError *nsError = [[NSError alloc] initWithDomain:RCPurchasesErrorCodeDomain
+                                                          code:RCUnknownError
+                                                      userInfo:@{NSLocalizedDescriptionKey: @"Both error and response are null"}];
+            error = [[RCErrorContainer alloc] initWithError:nsError extraPayload:@{}];
+        }
+
+        NSDictionary *response = (error)
+        ? @{
+            @"error": error.info
+        }
+        : responseDictionary;
+
+        [self sendJSONObject:response toMethod:REDEEM_WEB_PURCHASE];
+    }];
+}
+
 #pragma mark Helper Methods
+
+- (void)sendEmptyResponseToMethod:(NSString *)methodName {
+    UnitySendMessage(self.gameObject.UTF8String, methodName.UTF8String, "{}");
+}
 
 - (void)sendJSONObject:(NSDictionary *)jsonObject toMethod:(NSString *)methodName {
     NSError *error = nil;
@@ -489,7 +647,7 @@ signedDiscountTimestamp:(NSString *)signedDiscountTimestamp {
 }
 
 - (NSString *)platformFlavorVersion {
-    return @"7.3.1";
+    return @"7.7.0";
 }
 
 @end
@@ -523,6 +681,10 @@ void _RCSetupPurchases(const char *gameObject,
                      dangerousSettingsJson:convertCString(dangerousSettingsJson)
       shouldShowInAppMessagesAutomatically:shouldShowInAppMessagesAutomatically
                entitlementVerificationMode:convertCString(entitlementVerificationMode)];
+}
+
+void _RCGetStorefront() {
+    [_RCUnityHelperShared() getStorefront];
 }
 
 void _RCGetProducts(const char *productIdentifiersJSON, const char *type) {
@@ -774,8 +936,8 @@ void _RCShowInAppMessages(const char *messagesJSON) {
 
     NSData *data = [convertCString(messagesJSON) dataUsingEncoding:NSUTF8StringEncoding];
     NSDictionary *messagesDictionary = [NSJSONSerialization JSONObjectWithData:data
-                                                                           options:0
-                                                                             error:&error];
+                                                                       options:0
+                                                                         error:&error];
 
     if (error) {
         NSLog(@"Error parsing JSON: %s %@", messagesJSON, error.localizedDescription);
@@ -783,4 +945,36 @@ void _RCShowInAppMessages(const char *messagesJSON) {
     }
 
     [_RCUnityHelperShared() showInAppMessages:messagesDictionary[@"messageTypes"]];
+}
+
+void _RCParseAsWebPurchaseRedemption(const char *urlString) {
+    [_RCUnityHelperShared() parseAsWebPurchaseRedemption:convertCString(urlString)];
+}
+
+void _RCRedeemWebPurchase(const char *redemptionLink) {
+    [_RCUnityHelperShared() redeemWebPurchase:convertCString(redemptionLink)];
+}
+
+void _RCGetEligibleWinBackOffersForProduct(const char *productIdentifier) {
+    NSString *productIdentifierString = convertCString(productIdentifier);
+    [_RCUnityHelperShared() getEligibleWinBackOffersForProduct:productIdentifierString];
+}
+
+// This function accepts a product identifier since the PHC code only fetches eligible win-back offers for products
+void _RCGetEligibleWinBackOffersForPackage(const char *productIdentifier) {
+    NSString *productIdentifierString = convertCString(productIdentifier);
+    [_RCUnityHelperShared() getEligibleWinBackOffersForPackage:productIdentifierString];
+}
+
+void _RCPurchaseProductWithWinBackOffer(const char *productIdentifier, const char *winBackOfferIdentifier) {
+    NSString *productIdentifierString = convertCString(productIdentifier);
+    NSString *winBackOfferIdentifierString = convertCString(winBackOfferIdentifier);
+    [_RCUnityHelperShared() purchaseProductWithWinBackOffer:productIdentifierString winBackOfferIdentifier:winBackOfferIdentifierString];
+}
+
+void _RCPurchasePackageWithWinBackOffer(const char *packageIdentifier, const char *presentedOfferingContextJson, const char *winBackOfferIdentifier) {
+    NSString *packageIdentifierString = convertCString(packageIdentifier);
+    NSString *presentedOfferingContextJsonString = convertCString(presentedOfferingContextJson);
+    NSString *winBackOfferIdentifierString = convertCString(winBackOfferIdentifier);
+    [_RCUnityHelperShared() purchasePackageWithWinBackOffer:packageIdentifierString presentedOfferingContextJson:presentedOfferingContextJsonString winBackOfferIdentifier:winBackOfferIdentifierString];
 }

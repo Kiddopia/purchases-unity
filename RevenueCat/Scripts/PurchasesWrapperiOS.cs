@@ -29,6 +29,13 @@ public class PurchasesWrapperiOS : IPurchasesWrapper
             userDefaultsSuiteName, dangerousSettingsJson, shouldShowInAppMessagesAutomatically, entitlementVerificationMode.Name());
     }
 
+    [DllImport("__Internal")]
+    private static extern void _RCGetStorefront();
+    public void GetStorefront()
+    {
+        _RCGetStorefront();
+    }
+
     [SuppressMessage("ReSharper", "NotAccessedField.Local")]
     private class ProductsRequest
     {
@@ -453,6 +460,48 @@ public class PurchasesWrapperiOS : IPurchasesWrapper
         };
 
         _RCShowInAppMessages(JsonUtility.ToJson(request));
+    }
+
+    [DllImport("__Internal")]
+    private static extern void _RCParseAsWebPurchaseRedemption(string urlString);
+    public void ParseAsWebPurchaseRedemption(string urlString)
+    {
+        _RCParseAsWebPurchaseRedemption(urlString);
+    }
+
+    [DllImport("__Internal")]
+    private static extern void _RCRedeemWebPurchase(string resultJson);
+    public void RedeemWebPurchase(Purchases.WebPurchaseRedemption webPurchaseRedemption)
+    {
+        _RCRedeemWebPurchase(webPurchaseRedemption.RedemptionLink);
+    }
+
+    [DllImport("__Internal")]
+    private static extern void _RCGetEligibleWinBackOffersForProduct(string productIdentifier);
+    public void GetEligibleWinBackOffersForProduct(Purchases.StoreProduct storeProduct)
+    {
+        _RCGetEligibleWinBackOffersForProduct(storeProduct.Identifier);
+    }
+
+    [DllImport("__Internal")]
+    private static extern void _RCGetEligibleWinBackOffersForPackage(string productIdentifier);
+    public void GetEligibleWinBackOffersForPackage(Purchases.Package package)
+    {
+        _RCGetEligibleWinBackOffersForPackage(package.StoreProduct.Identifier);
+    }
+
+    [DllImport("__Internal")]
+    private static extern void _RCPurchaseProductWithWinBackOffer(string productIdentifier, string winBackOfferIdentifier);
+    public void PurchaseProductWithWinBackOffer(Purchases.StoreProduct storeProduct, Purchases.WinBackOffer winBackOffer)
+    {
+        _RCPurchaseProductWithWinBackOffer(storeProduct.Identifier, winBackOffer.Identifier);
+    }
+
+    [DllImport("__Internal")]
+    private static extern void _RCPurchasePackageWithWinBackOffer(string packageIdentifier, string presentedOfferingContextJson, string winBackOfferIdentifier);
+    public void PurchasePackageWithWinBackOffer(Purchases.Package package, Purchases.WinBackOffer winBackOffer)
+    {
+        _RCPurchasePackageWithWinBackOffer(package.Identifier, package.PresentedOfferingContext.ToJsonString(), winBackOffer.Identifier);
     }
 }
 #endif

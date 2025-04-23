@@ -1,3 +1,136 @@
+## 7.7.0
+## RevenueCat SDK
+### ✨ New Features
+* Add `getStorefront` API (#586) via Toni Rico (@tonidero)
+### 📦 Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.29.0 (#585) via RevenueCat Git Bot (@RCGitBot)
+  * [Android 8.17.0](https://github.com/RevenueCat/purchases-android/releases/tag/8.17.0)
+  * [Android 8.16.1](https://github.com/RevenueCat/purchases-android/releases/tag/8.16.1)
+  * [iOS 5.22.0](https://github.com/RevenueCat/purchases-ios/releases/tag/5.22.0)
+  * [iOS 5.21.2](https://github.com/RevenueCat/purchases-ios/releases/tag/5.21.2)
+  * [iOS 5.21.1](https://github.com/RevenueCat/purchases-ios/releases/tag/5.21.1)
+
+## 7.6.3
+## RevenueCat SDK
+### 📦 Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.28.0 (#581) via RevenueCat Git Bot (@RCGitBot)
+  * [Android 8.16.0](https://github.com/RevenueCat/purchases-android/releases/tag/8.16.0)
+  * [Android 8.15.1](https://github.com/RevenueCat/purchases-android/releases/tag/8.15.1)
+  * [Android 8.15.0](https://github.com/RevenueCat/purchases-android/releases/tag/8.15.0)
+  * [Android 8.14.3](https://github.com/RevenueCat/purchases-android/releases/tag/8.14.3)
+  * [Android 8.14.2](https://github.com/RevenueCat/purchases-android/releases/tag/8.14.2)
+  * [iOS 5.21.0](https://github.com/RevenueCat/purchases-ios/releases/tag/5.21.0)
+  * [iOS 5.20.3](https://github.com/RevenueCat/purchases-ios/releases/tag/5.20.3)
+  * [iOS 5.20.2](https://github.com/RevenueCat/purchases-ios/releases/tag/5.20.2)
+  * [iOS 5.20.1](https://github.com/RevenueCat/purchases-ios/releases/tag/5.20.1)
+  * [iOS 5.20.0](https://github.com/RevenueCat/purchases-ios/releases/tag/5.20.0)
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.27.0 (#580) via RevenueCat Git Bot (@RCGitBot)
+  * [Android 8.16.0](https://github.com/RevenueCat/purchases-android/releases/tag/8.16.0)
+  * [Android 8.15.1](https://github.com/RevenueCat/purchases-android/releases/tag/8.15.1)
+  * [Android 8.15.0](https://github.com/RevenueCat/purchases-android/releases/tag/8.15.0)
+  * [Android 8.14.3](https://github.com/RevenueCat/purchases-android/releases/tag/8.14.3)
+  * [Android 8.14.2](https://github.com/RevenueCat/purchases-android/releases/tag/8.14.2)
+  * [iOS 5.21.0](https://github.com/RevenueCat/purchases-ios/releases/tag/5.21.0)
+  * [iOS 5.20.3](https://github.com/RevenueCat/purchases-ios/releases/tag/5.20.3)
+  * [iOS 5.20.2](https://github.com/RevenueCat/purchases-ios/releases/tag/5.20.2)
+  * [iOS 5.20.1](https://github.com/RevenueCat/purchases-ios/releases/tag/5.20.1)
+  * [iOS 5.20.0](https://github.com/RevenueCat/purchases-ios/releases/tag/5.20.0)
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.26.1 (#579) via RevenueCat Git Bot (@RCGitBot)
+  * [Android 8.16.0](https://github.com/RevenueCat/purchases-android/releases/tag/8.16.0)
+  * [Android 8.15.1](https://github.com/RevenueCat/purchases-android/releases/tag/8.15.1)
+  * [Android 8.15.0](https://github.com/RevenueCat/purchases-android/releases/tag/8.15.0)
+  * [Android 8.14.3](https://github.com/RevenueCat/purchases-android/releases/tag/8.14.3)
+  * [Android 8.14.2](https://github.com/RevenueCat/purchases-android/releases/tag/8.14.2)
+  * [iOS 5.21.0](https://github.com/RevenueCat/purchases-ios/releases/tag/5.21.0)
+  * [iOS 5.20.3](https://github.com/RevenueCat/purchases-ios/releases/tag/5.20.3)
+  * [iOS 5.20.2](https://github.com/RevenueCat/purchases-ios/releases/tag/5.20.2)
+  * [iOS 5.20.1](https://github.com/RevenueCat/purchases-ios/releases/tag/5.20.1)
+  * [iOS 5.20.0](https://github.com/RevenueCat/purchases-ios/releases/tag/5.20.0)
+
+### 🔄 Other Changes
+* Bump nokogiri from 1.18.3 to 1.18.4 (#578) via dependabot[bot] (@dependabot[bot])
+* Update compatibility versions for Unity IAP 5.0-pre versions (#577) via Toni Rico (@tonidero)
+
+## 7.6.2
+## RevenueCat SDK
+### 📦 Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.25.0 (#571) via RevenueCat Git Bot (@RCGitBot)
+  * [Android 8.14.1](https://github.com/RevenueCat/purchases-android/releases/tag/8.14.1)
+  * [Android 8.14.0](https://github.com/RevenueCat/purchases-android/releases/tag/8.14.0)
+
+### 🔄 Other Changes
+* Bump fastlane from 2.226.0 to 2.227.0 (#574) via dependabot[bot] (@dependabot[bot])
+* Update fastlane plugin (#573) via Toni Rico (@tonidero)
+
+## 7.6.1
+## RevenueCat SDK
+### 📦 Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.24.0 (#570) via RevenueCat Git Bot (@RCGitBot)
+
+## 7.6.0
+## RevenueCat SDK
+### ✨ New Features
+* Add `subscriptionsByProductIdentifier` in CustomerInfo (#567) via Toni Rico (@tonidero)
+### 📦 Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.22.0 (#566) via RevenueCat Git Bot (@RCGitBot)
+
+## 7.5.3
+## RevenueCat SDK
+### 📦 Dependency Updates
+* Updates purchases-hybrid-common to 13.19.0 (#562) via RevenueCat Git Bot (@RCGitBot)
+
+## 7.5.2
+## RevenueCat SDK
+### 📦 Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.17.1 (#556) via RevenueCat Git Bot (@RCGitBot)
+
+## 7.5.1
+## RevenueCat SDK
+### 📦 Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.16.2 (#553) via RevenueCat Git Bot (@RCGitBot)
+
+## 7.5.0
+## RevenueCat SDK
+### 📦 Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.16.0 (#551) via RevenueCat Git Bot (@RCGitBot)
+### Win-back Offers
+#### ✨ New Features
+* Support Fetching and Redeeming Win-Back Offers on Custom Paywall (#549) via Will Taylor (@fire-at-will)
+
+## 7.4.2
+## RevenueCat SDK
+### 📦 Dependency Updates
+* Updates purchases-hybrid-common to 13.15.2 (#548) via RevenueCat Git Bot (@RCGitBot)
+
+## 7.4.1
+## RevenueCat SDK
+### 🐞 Bugfixes
+* Fix Android SDK build issue (#546) via Toni Rico (@tonidero)
+
+## 7.4.0
+## RevenueCat SDK
+### ✨ New Features
+* Support Web Redemption Links (#539) via Toni Rico (@tonidero)
+### 📦 Dependency Updates
+* Bump fastlane from 2.225.0 to 2.226.0 (#536) via dependabot[bot] (@dependabot[bot])
+
+## 7.3.4
+## RevenueCat SDK
+### 📦 Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.13.0 (#537) via RevenueCat Git Bot (@RCGitBot)
+
+## 7.3.3
+## RevenueCat SDK
+### 📦 Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.12.0 (#533) via RevenueCat Git Bot (@RCGitBot)
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.11.0 (#531) via RevenueCat Git Bot (@RCGitBot)
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.10.0 (#530) via RevenueCat Git Bot (@RCGitBot)
+
+## 7.3.2
+## RevenueCat SDK
+### 📦 Dependency Updates
+* [AUTOMATIC BUMP] Updates purchases-hybrid-common to 13.9.0 (#528) via RevenueCat Git Bot (@RCGitBot)
+
 ## 7.3.1
 ## RevenueCat SDK
 ### 📦 Dependency Updates

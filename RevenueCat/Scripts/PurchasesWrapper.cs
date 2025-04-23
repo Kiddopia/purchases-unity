@@ -12,6 +12,7 @@ public interface IPurchasesWrapper
         bool shouldShowInAppMessagesAutomatically, Purchases.EntitlementVerificationMode entitlementVerificationMode,
         bool pendingTransactionsForPrepaidPlansEnabled);
 
+    void GetStorefront();
     void GetProducts(string[] productIdentifiers, string type = "subs");
 
     void PurchaseProduct(string productIdentifier, string type = "subs", string oldSku = null,
@@ -77,4 +78,10 @@ public interface IPurchasesWrapper
     void CanMakePayments(Purchases.BillingFeature[] features);
     void GetPromotionalOffer(string productIdentifier, string discountIdentifier);
     void ShowInAppMessages(Purchases.InAppMessageType[] messageTypes);
+    void ParseAsWebPurchaseRedemption(string urlString);
+    void RedeemWebPurchase(Purchases.WebPurchaseRedemption webPurchaseRedemption);
+    void GetEligibleWinBackOffersForProduct(Purchases.StoreProduct storeProduct);
+    void GetEligibleWinBackOffersForPackage(Purchases.Package package);
+    void PurchaseProductWithWinBackOffer(Purchases.StoreProduct storeProduct, Purchases.WinBackOffer winBackOffer);
+    void PurchasePackageWithWinBackOffer(Purchases.Package package, Purchases.WinBackOffer winBackOffer);
 }

@@ -11,6 +11,11 @@ public class PurchasesWrapperAndroid : IPurchasesWrapper
         public string[] productIdentifiers;
     }
 
+    public void GetStorefront()
+    {
+        CallPurchases("getStorefront");
+    }
+
     public void GetProducts(string[] productIdentifiers, string type = "subs")
     {
         var request = new ProductsRequest
@@ -373,6 +378,36 @@ public class PurchasesWrapperAndroid : IPurchasesWrapper
             messageTypes = messageTypesAsInts
         };
         CallPurchases("showInAppMessages", JsonUtility.ToJson(request));
+    }
+
+    public void ParseAsWebPurchaseRedemption(string urlString)
+    {
+        CallPurchases("parseAsWebPurchaseRedemption", urlString);
+    }
+
+    public void RedeemWebPurchase(Purchases.WebPurchaseRedemption webPurchaseRedemption)
+    {
+        CallPurchases("redeemWebPurchase", webPurchaseRedemption.RedemptionLink);
+    }
+
+    public void GetEligibleWinBackOffersForProduct(Purchases.StoreProduct storeProduct)
+    {
+        CallPurchases("getEligibleWinBackOffersForProduct", storeProduct.Identifier);
+    }
+
+    public void GetEligibleWinBackOffersForPackage(Purchases.Package package)
+    {
+        CallPurchases("getEligibleWinBackOffersForPackage", package.StoreProduct.Identifier);
+    }
+
+    public void PurchaseProductWithWinBackOffer(Purchases.StoreProduct storeProduct, Purchases.WinBackOffer winBackOffer)
+    {
+        CallPurchases("purchaseProductWithWinBackOffer", storeProduct.Identifier, winBackOffer.Identifier);
+    }
+
+    public void PurchasePackageWithWinBackOffer(Purchases.Package package, Purchases.WinBackOffer winBackOffer)
+    {
+        CallPurchases("purchasePackageWithWinBackOffer", package.Identifier, package.PresentedOfferingContext.ToJsonString(), winBackOffer.Identifier);
     }
 
     private const string PurchasesWrapper = "com.revenuecat.purchasesunity.PurchasesWrapper";

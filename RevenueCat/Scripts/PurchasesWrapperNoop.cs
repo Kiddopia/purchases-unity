@@ -17,6 +17,10 @@ public partial class Purchases
         {
         }
 
+        public void GetStorefront()
+        {
+        }
+
         public void GetProducts(string[] productIdentifiers, string type = "subs")
         {
         }
@@ -236,6 +240,30 @@ public partial class Purchases
         }
 
         public void ShowInAppMessages(Purchases.InAppMessageType[] messageTypes)
+        {
+        }
+
+        public void ParseAsWebPurchaseRedemption(string urlString)
+        {
+        }
+
+        public void RedeemWebPurchase(Purchases.WebPurchaseRedemption webPurchaseRedemption)
+        {
+        }
+
+        public void GetEligibleWinBackOffersForProduct(Purchases.StoreProduct storeProduct)
+        {
+        }
+
+        public void GetEligibleWinBackOffersForPackage(Purchases.Package package)
+        {
+        }
+
+        public void PurchaseProductWithWinBackOffer(Purchases.StoreProduct storeProduct, Purchases.WinBackOffer winBackOffer)
+        {
+        }
+
+        public void PurchasePackageWithWinBackOffer(Purchases.Package package, Purchases.WinBackOffer winBackOffer)
         {
         }
     }

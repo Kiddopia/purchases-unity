@@ -8,6 +8,8 @@ import androidx.annotation.Nullable;
 import com.revenuecat.purchases.CustomerInfo;
 import com.revenuecat.purchases.DangerousSettings;
 import com.revenuecat.purchases.Purchases;
+import com.revenuecat.purchases.PurchasesError;
+import com.revenuecat.purchases.PurchasesErrorCode;
 import com.revenuecat.purchases.Store;
 import com.revenuecat.purchases.common.PlatformInfo;
 import com.revenuecat.purchases.hybridcommon.CommonKt;
@@ -19,6 +21,7 @@ import com.revenuecat.purchases.hybridcommon.OnResultList;
 import com.revenuecat.purchases.hybridcommon.SubscriberAttributesKt;
 import com.revenuecat.purchases.hybridcommon.mappers.CustomerInfoMapperKt;
 import com.revenuecat.purchases.hybridcommon.mappers.MappersHelpersKt;
+import com.revenuecat.purchases.hybridcommon.mappers.PurchasesErrorKt;
 import com.revenuecat.purchases.interfaces.UpdatedCustomerInfoListener;
 import com.revenuecat.purchases.models.InAppMessageType;
 import com.unity3d.player.UnityPlayer;
@@ -33,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 
 public class PurchasesWrapper {
+    private static final String RECEIVE_STOREFRONT = "_receiveStorefront";
     private static final String RECEIVE_PRODUCTS = "_receiveProducts";
     private static final String GET_CUSTOMER_INFO = "_getCustomerInfo";
     private static final String MAKE_PURCHASE = "_makePurchase";
@@ -48,11 +52,16 @@ public class PurchasesWrapper {
     private static final String GET_PROMOTIONAL_OFFER = "_getPromotionalOffer";
     private static final String GET_LWA_CONSENT_STATUS = "_getAmazonLWAConsentStatus";
     private static final String SYNC_PURCHASES = "_syncPurchases";
-
+    private static final String PARSE_AS_WEB_PURCHASE_REDEMPTION = "_parseAsWebPurchaseRedemption";
+    private static final String REDEEM_WEB_PURCHASE = "_redeemWebPurchase";
+    private static final String GET_ELIGIBLE_WIN_BACK_OFFERS_FOR_PRODUCT = "_getEligibleWinBackOffersForProduct";
+    private static final String GET_ELIGIBLE_WIN_BACK_OFFERS_FOR_PACKAGE = "_getEligibleWinBackOffersForPackage";
+    private static final String PURCHASE_PRODUCT_WITH_WIN_BACK_OFFER = "_purchaseProductWithWinBackOffer";
+    private static final String PURCHASE_PACKAGE_WITH_WIN_BACK_OFFER = "_purchasePackageWithWinBackOffer";
     private static final String HANDLE_LOG = "_handleLog";
 
     private static final String PLATFORM_NAME = "unity";
-    private static final String PLUGIN_VERSION = "7.3.1";
+    private static final String PLUGIN_VERSION = "7.7.0";
 
     private static String gameObject;
 
@@ -81,6 +90,17 @@ public class PurchasesWrapper {
                 dangerousSettings, shouldShowInAppMessagesAutomatically, entitlementVerificationMode,
                 pendingTransactionsForPrepaidPlansEnabled);
         Purchases.getSharedInstance().setUpdatedCustomerInfoListener(listener);
+    }
+
+    public static void getStorefront() {
+        CommonKt.getStorefront(storefrontMap -> {
+            if (storefrontMap != null) {
+                sendJSONObject(MappersHelpersKt.convertToJson(storefrontMap), RECEIVE_STOREFRONT);
+            } else {
+                sendEmptyJSONObject(RECEIVE_STOREFRONT);
+            }
+            return null;
+        });
     }
 
     public static void getProducts(String jsonProducts, String type) {
@@ -565,8 +585,87 @@ public class PurchasesWrapper {
         }
     }
 
+    public static void parseAsWebPurchaseRedemption(String urlString) {
+        boolean isWebPurchaseRedemptionURL = CommonKt.isWebPurchaseRedemptionURL(urlString);
+        if (isWebPurchaseRedemptionURL) {
+            JSONObject object = new JSONObject();
+            try {
+                object.put("redemptionLink", urlString);
+            } catch (JSONException e) {
+                logJSONException(e);
+            }
+            sendJSONObject(object, PARSE_AS_WEB_PURCHASE_REDEMPTION);
+        } else {
+            sendJSONObject(null, PARSE_AS_WEB_PURCHASE_REDEMPTION);
+        }
+    }
+
+    public static void redeemWebPurchase(String redemptionLink) {
+        CommonKt.redeemWebPurchase(redemptionLink, new OnResult() {
+            @Override
+            public void onReceived(Map<String, ?> map) {
+                sendJSONObject(MappersHelpersKt.convertToJson(map), REDEEM_WEB_PURCHASE);
+            }
+
+            @Override
+            public void onError(ErrorContainer errorContainer) {
+                sendError(errorContainer, REDEEM_WEB_PURCHASE);
+            }
+        });
+    }
+
+    public static void getEligibleWinBackOffersForProduct(String productIdentifier) {
+        // NOOP
+        PurchasesError error = new PurchasesError(
+                PurchasesErrorCode.UnsupportedError,
+                "Win-back offers are not supported on Android.");
+
+        ErrorContainer errorContainer = PurchasesErrorKt.map(
+                error,
+                new HashMap<>());
+        sendError(errorContainer, GET_ELIGIBLE_WIN_BACK_OFFERS_FOR_PRODUCT);
+    }
+
+    // This function accepts a product identifier since the PHC code only fetches
+    // eligible win-back offers for products
+    public static void getEligibleWinBackOffersForPackage(String productIdentifier) {
+        // NOOP
+        PurchasesError error = new PurchasesError(
+                PurchasesErrorCode.UnsupportedError,
+                "Win-back offers are not supported on Android.");
+
+        ErrorContainer errorContainer = PurchasesErrorKt.map(
+                error,
+                new HashMap<>());
+        sendError(errorContainer, GET_ELIGIBLE_WIN_BACK_OFFERS_FOR_PACKAGE);
+    }
+
+    public static void purchaseProductWithWinBackOffer(String productIdentifier, String winBackOfferIdentifier) {
+        // NOOP
+        PurchasesError error = new PurchasesError(
+                PurchasesErrorCode.UnsupportedError,
+                "Win-back offers are not supported on Android.");
+
+        ErrorContainer errorContainer = PurchasesErrorKt.map(error, new HashMap<>());
+        sendError(errorContainer, PURCHASE_PRODUCT_WITH_WIN_BACK_OFFER);
+    }
+
+    public static void purchasePackageWithWinBackOffer(String packageIdentifier, String presentedOfferingContextJson, String winBackOfferIdentifier) {
+        // NOOP
+        PurchasesError error = new PurchasesError(
+                PurchasesErrorCode.UnsupportedError,
+                "Win-back offers are not supported on Android.");
+
+        ErrorContainer errorContainer = PurchasesErrorKt.map(error, new HashMap<>());
+        sendError(errorContainer, PURCHASE_PACKAGE_WITH_WIN_BACK_OFFER);
+    }
+
     private static void logJSONException(JSONException e) {
         Log.e("Purchases", "JSON Error: " + e.getLocalizedMessage());
+    }
+
+    static void sendEmptyJSONObject(String method) {
+        UnityPlayer.UnitySendMessage(gameObject, method, "{}");
     }
 
     static void sendJSONObject(JSONObject object, String method) {
