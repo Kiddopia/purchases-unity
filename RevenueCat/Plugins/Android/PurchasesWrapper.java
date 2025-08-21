@@ -35,6 +35,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import kotlin.Unit;
+
 public class PurchasesWrapper {
     private static final String RECEIVE_STOREFRONT = "_receiveStorefront";
     private static final String RECEIVE_PRODUCTS = "_receiveProducts";
@@ -54,6 +56,7 @@ public class PurchasesWrapper {
     private static final String SYNC_PURCHASES = "_syncPurchases";
     private static final String PARSE_AS_WEB_PURCHASE_REDEMPTION = "_parseAsWebPurchaseRedemption";
     private static final String REDEEM_WEB_PURCHASE = "_redeemWebPurchase";
+    private static final String GET_VIRTUAL_CURRENCIES = "_getVirtualCurrencies";
     private static final String GET_ELIGIBLE_WIN_BACK_OFFERS_FOR_PRODUCT = "_getEligibleWinBackOffersForProduct";
     private static final String GET_ELIGIBLE_WIN_BACK_OFFERS_FOR_PACKAGE = "_getEligibleWinBackOffersForPackage";
     private static final String PURCHASE_PRODUCT_WITH_WIN_BACK_OFFER = "_purchaseProductWithWinBackOffer";
@@ -61,14 +64,20 @@ public class PurchasesWrapper {
     private static final String HANDLE_LOG = "_handleLog";
 
     private static final String PLATFORM_NAME = "unity";
-    private static final String PLUGIN_VERSION = "7.7.0";
+    private static final String PLUGIN_VERSION = "8.1.0";
 
     private static String gameObject;
 
     private static UpdatedCustomerInfoListener listener = new UpdatedCustomerInfoListener() {
         @Override
         public void onReceived(@NonNull CustomerInfo customerInfo) {
-            sendCustomerInfo(CustomerInfoMapperKt.map(customerInfo), RECEIVE_CUSTOMER_INFO);
+            CustomerInfoMapperKt.mapAsync(
+                    customerInfo,
+                    map -> {
+                        sendCustomerInfo(map, RECEIVE_CUSTOMER_INFO);
+                        return Unit.INSTANCE;
+                    }
+            );
         }
     };
 
@@ -612,6 +621,36 @@ public class PurchasesWrapper {
                 sendError(errorContainer, REDEEM_WEB_PURCHASE);
             }
         });
+    }
+
+    public static void getVirtualCurrencies() {
+        CommonKt.getVirtualCurrencies(new OnResult() {
+            @Override
+            public void onReceived(Map<String, ?> map) {
+                sendJSONObject(MappersHelpersKt.convertToJson(map), GET_VIRTUAL_CURRENCIES);
+            }
+
+            @Override
+            public void onError(ErrorContainer errorContainer) {
+                sendError(errorContainer, GET_VIRTUAL_CURRENCIES);
+            }
+        });
+    }
+
+    @Nullable
+    public static String getCachedVirtualCurrencies() {
+        Map<String, ?> map = CommonKt.getCachedVirtualCurrencies();
+        
+        if (map != null) {
+            JSONObject cachedVirtualCurrencies = MappersHelpersKt.convertToJson(map);
+            return cachedVirtualCurrencies.toString();
+        }
+        
+        return null;
+    }
+
+    public static void invalidateVirtualCurrenciesCache() {
+        CommonKt.invalidateVirtualCurrenciesCache();
     }
 
     public static void getEligibleWinBackOffersForProduct(String productIdentifier) {
