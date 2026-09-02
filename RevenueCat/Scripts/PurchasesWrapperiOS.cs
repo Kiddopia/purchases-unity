@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
+using RevenueCat;
 using UnityEngine;
 
 #if UNITY_IOS || UNITY_VISIONOS
@@ -10,23 +11,28 @@ public class PurchasesWrapperiOS : IPurchasesWrapper
     private static extern void _RCSetupPurchases(string gameObject, string apiKey, string appUserId, string purchasesAreCompletedBy,
                                                  string storeKitVersion, string userDefaultsSuiteName,
                                                  string dangerousSettingsJson, bool shouldShowInAppMessagesAutomatically,
-                                                 string entitlementVerificationMode);
+                                                 string entitlementVerificationMode, bool diagnosticsEnabled,
+                                                 bool automaticDeviceIdentifierCollectionEnabled, string preferredUILocaleOverride);
     public void Setup(string gameObject, string apiKey, string appUserId, Purchases.PurchasesAreCompletedBy purchasesAreCompletedBy,
         Purchases.StoreKitVersion storeKitVersion, string userDefaultsSuiteName, bool useAmazon, string dangerousSettingsJson,
-        bool shouldShowInAppMessagesAutomatically, bool pendingTransactionsForPrepaidPlansEnabled)
+        bool shouldShowInAppMessagesAutomatically, bool pendingTransactionsForPrepaidPlansEnabled, bool diagnosticsEnabled,
+        bool automaticDeviceIdentifierCollectionEnabled, string preferredUILocaleOverride)
     {
-        Setup(gameObject, apiKey, appUserId, purchasesAreCompletedBy, storeKitVersion, 
-            userDefaultsSuiteName, useAmazon, dangerousSettingsJson, shouldShowInAppMessagesAutomatically, 
-            Purchases.EntitlementVerificationMode.Disabled, pendingTransactionsForPrepaidPlansEnabled);
+        Setup(gameObject, apiKey, appUserId, purchasesAreCompletedBy, storeKitVersion,
+            userDefaultsSuiteName, useAmazon, dangerousSettingsJson, shouldShowInAppMessagesAutomatically,
+            Purchases.EntitlementVerificationMode.Disabled, pendingTransactionsForPrepaidPlansEnabled, diagnosticsEnabled,
+            automaticDeviceIdentifierCollectionEnabled, preferredUILocaleOverride);
     }
 
     public void Setup(string gameObject, string apiKey, string appUserId, Purchases.PurchasesAreCompletedBy purchasesAreCompletedBy,
         Purchases.StoreKitVersion storeKitVersion, string userDefaultsSuiteName, bool useAmazon, string dangerousSettingsJson,
         bool shouldShowInAppMessagesAutomatically, Purchases.EntitlementVerificationMode entitlementVerificationMode,
-        bool pendingTransactionsForPrepaidPlansEnabled)
+        bool pendingTransactionsForPrepaidPlansEnabled, bool diagnosticsEnabled, bool automaticDeviceIdentifierCollectionEnabled,
+        string preferredUILocaleOverride)
     {
         _RCSetupPurchases(gameObject, apiKey, appUserId, purchasesAreCompletedBy.Name(), storeKitVersion.Name(),
-            userDefaultsSuiteName, dangerousSettingsJson, shouldShowInAppMessagesAutomatically, entitlementVerificationMode.Name());
+            userDefaultsSuiteName, dangerousSettingsJson, shouldShowInAppMessagesAutomatically, entitlementVerificationMode.Name(),
+            diagnosticsEnabled, automaticDeviceIdentifierCollectionEnabled, preferredUILocaleOverride);
     }
 
     [DllImport("__Internal")]
@@ -240,6 +246,13 @@ public class PurchasesWrapperiOS : IPurchasesWrapper
     }
 
     [DllImport("__Internal")]
+    private static extern void _RCOverridePreferredUILocale(string locale);
+    public void OverridePreferredUILocale(string locale)
+    {
+        _RCOverridePreferredUILocale(locale);
+    }
+
+    [DllImport("__Internal")]
     private static extern void _RCPresentCodeRedemptionSheet();
     public void PresentCodeRedemptionSheet()
     {
@@ -331,6 +344,13 @@ public class PurchasesWrapperiOS : IPurchasesWrapper
     }
 
     [DllImport("__Internal")]
+    private static extern void _RCSetOnesignalUserID(string onesignalUserID);
+    public void SetOnesignalUserID(string onesignalUserID)
+    {
+        _RCSetOnesignalUserID(onesignalUserID);
+    }
+
+    [DllImport("__Internal")]
     private static extern void _RCSetAirshipChannelID(string airshipChannelID);
     public void SetAirshipChannelID(string airshipChannelID)
     {
@@ -398,6 +418,13 @@ public class PurchasesWrapperiOS : IPurchasesWrapper
     public void SetCreative(string creative)
     {
         _RCSetCreative(creative);
+    }
+
+    [DllImport("__Internal")]
+    private static extern void _RCSetAppsFlyerConversionData(string conversionDataJson);
+    public void SetAppsFlyerConversionData(string conversionDataJson)
+    {
+        _RCSetAppsFlyerConversionData(conversionDataJson);
     }
 
     [DllImport("__Internal")]
@@ -524,5 +551,48 @@ public class PurchasesWrapperiOS : IPurchasesWrapper
     {
         _RCPurchasePackageWithWinBackOffer(package.Identifier, package.PresentedOfferingContext.ToJsonString(), winBackOffer.Identifier);
     }
+    [DllImport("__Internal")]
+    private static extern void _RCTrackCustomPaywallImpression(string paywallId, string offeringId, string presentedOfferingContextJSON);
+    public void TrackCustomPaywallImpression(Purchases.CustomPaywallImpressionParams parameters)
+    {
+        var offeringId = parameters.OfferingId;
+        _RCTrackCustomPaywallImpression(parameters.PaywallId, offeringId,
+            parameters.PresentedOfferingContext?.ToJsonString());
+    }
+
+    [DllImport("__Internal")]
+    private static extern void _RCTrackAdDisplayed(string dataJson);
+    public void TrackAdDisplayed(AdDisplayedData data) =>
+        _RCTrackAdDisplayed(data.ToJsonString());
+
+    [DllImport("__Internal")]
+    private static extern void _RCTrackAdOpened(string dataJson);
+    public void TrackAdOpened(AdOpenedData data) =>
+        _RCTrackAdOpened(data.ToJsonString());
+
+    [DllImport("__Internal")]
+    private static extern void _RCTrackAdRevenue(string dataJson);
+    public void TrackAdRevenue(AdRevenueData data) =>
+        _RCTrackAdRevenue(data.ToJsonString());
+
+    [DllImport("__Internal")]
+    private static extern void _RCTrackAdLoaded(string dataJson);
+    public void TrackAdLoaded(AdLoadedData data) =>
+        _RCTrackAdLoaded(data.ToJsonString());
+
+    [DllImport("__Internal")]
+    private static extern void _RCTrackAdFailedToLoad(string dataJson);
+    public void TrackAdFailedToLoad(AdFailedToLoadData data) =>
+        _RCTrackAdFailedToLoad(data.ToJsonString());
+
+    [DllImport("__Internal")]
+    private static extern void _RCGenerateRewardVerificationToken(string impressionId);
+    public void GenerateRewardVerificationToken(string impressionId) =>
+        _RCGenerateRewardVerificationToken(impressionId);
+
+    [DllImport("__Internal")]
+    private static extern void _RCPollRewardVerification(string clientTransactionId, string trackingMetadataJson);
+    public void PollRewardVerification(string clientTransactionId, RevenueCat.RewardedAdTrackingMetadata trackingMetadata = null) =>
+        _RCPollRewardVerification(clientTransactionId, trackingMetadata?.ToJsonString());
 }
 #endif

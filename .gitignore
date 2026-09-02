@@ -1,5 +1,6 @@
 .DS_Store
 .idea/
+.claude/
 org.eclipse.buildship.core.prefs
 .project
 .classpath
@@ -13,6 +14,7 @@ IntegrationTests/Assets/Plugins/Android/*.aar
 IntegrationTests/Assets/ExternalDependencyManager/
 IntegrationTests/ProjectSettings/AndroidResolverDependencies.xml
 Purchases.unitypackage
+PurchasesUI.unitypackage
 Purchases-UnityIAP.unitypackage
 IntegrationTests/buildiOS/
 **.log
@@ -27,3 +29,4 @@ fastlane/.env
 # CircleCI folders
 vendor/
 .bundle/
+RevenueCatUI/Plugins/Android/RevenueCatUI.androidlib/build

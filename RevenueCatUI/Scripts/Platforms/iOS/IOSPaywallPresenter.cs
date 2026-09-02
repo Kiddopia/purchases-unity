@@ -1,0 +1,184 @@
+#if UNITY_IOS && !UNITY_EDITOR
+using System;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using RevenueCatUI.Internal;
+
+namespace RevenueCatUI.Platforms
+{
+    internal class IOSPaywallPresenter : IPaywallPresenter
+    {
+        private delegate void PaywallResultCallback(string result);
+        private delegate void PurchaseLogicPurchaseCallback(string requestId, string packageJson);
+        private delegate void PurchaseLogicRestoreCallback(string requestId);
+        private delegate void PaywallEventCallback(string eventName, string payloadJson);
+
+        [DllImport("__Internal")] private static extern void rcui_presentPaywall(string offeringIdentifier, string presentedOfferingContextJson, bool displayCloseButton, bool useFullScreenPresentation, string presentationMode, string customVariablesJson, bool hasPaywallListener, PaywallEventCallback eventCallback, PaywallResultCallback cb);
+        [DllImport("__Internal")] private static extern void rcui_presentPaywallIfNeeded(string requiredEntitlementIdentifier, string offeringIdentifier, string presentedOfferingContextJson, bool displayCloseButton, bool useFullScreenPresentation, string presentationMode, string customVariablesJson, bool hasPaywallListener, PaywallEventCallback eventCallback, PaywallResultCallback cb);
+        [DllImport("__Internal")] private static extern void rcui_presentPaywallWithPurchaseLogic(string offeringIdentifier, string presentedOfferingContextJson, bool displayCloseButton, bool useFullScreenPresentation, string presentationMode, string customVariablesJson, PurchaseLogicPurchaseCallback purchaseCallback, PurchaseLogicRestoreCallback restoreCallback, bool hasPaywallListener, PaywallEventCallback eventCallback, PaywallResultCallback resultCallback);
+        [DllImport("__Internal")] private static extern void rcui_presentPaywallIfNeededWithPurchaseLogic(string requiredEntitlementIdentifier, string offeringIdentifier, string presentedOfferingContextJson, bool displayCloseButton, bool useFullScreenPresentation, string presentationMode, string customVariablesJson, PurchaseLogicPurchaseCallback purchaseCallback, PurchaseLogicRestoreCallback restoreCallback, bool hasPaywallListener, PaywallEventCallback eventCallback, PaywallResultCallback resultCallback);
+
+        private static TaskCompletionSource<PaywallResult> s_current;
+
+        public Task<PaywallResult> PresentPaywallAsync(PaywallOptions options)
+        {
+            if (s_current != null && !s_current.Task.IsCompleted)
+            {
+                UnityEngine.Debug.LogWarning("[RevenueCatUI][iOS] Paywall presentation already in progress; rejecting new request.");
+                return Task.FromResult(PaywallResult.Error);
+            }
+
+            var tcs = new TaskCompletionSource<PaywallResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            s_current = tcs;
+            try
+            {
+                var presentedOfferingContextJson = options?.PresentedOfferingContext?.ToJsonString();
+                var useFullScreen = options?.PresentationConfiguration?.IOS == IOSPaywallPresentationStyle.FullScreen;
+                var presentationMode = options?.PresentationConfiguration?.IOS?.Value;
+                var customVariablesJson = options?.CustomVariablesToJsonString();
+                var hasPaywallListener = options?.Listener != null;
+                if (hasPaywallListener)
+                {
+                    PaywallListenerBridge.SetCurrentListener(options.Listener);
+                }
+                if (options?.PurchaseLogic != null)
+                {
+                    PurchaseLogicBridge.SetCurrentPurchaseLogic(options.PurchaseLogic);
+                    rcui_presentPaywallWithPurchaseLogic(
+                        options.OfferingIdentifier,
+                        presentedOfferingContextJson,
+                        options.DisplayCloseButton,
+                        useFullScreen,
+                        presentationMode,
+                        customVariablesJson,
+                        OnPerformPurchase,
+                        OnPerformRestore,
+                        hasPaywallListener,
+                        OnPaywallEvent,
+                        OnResultWithPurchaseLogic);
+                }
+                else
+                {
+                    rcui_presentPaywall(options?.OfferingIdentifier, presentedOfferingContextJson, options?.DisplayCloseButton ?? false, useFullScreen, presentationMode, customVariablesJson, hasPaywallListener, OnPaywallEvent, OnResult);
+                }
+            }
+            catch (Exception e)
+            {
+                UnityEngine.Debug.LogError($"[RevenueCatUI][iOS] Exception in presentPaywall: {e.Message}");
+                tcs.TrySetResult(PaywallResult.Error);
+                s_current = null;
+                PurchaseLogicBridge.ClearCurrentPurchaseLogic();
+                PaywallListenerBridge.ClearCurrentListener();
+            }
+            return tcs.Task;
+        }
+
+        public Task<PaywallResult> PresentPaywallIfNeededAsync(string requiredEntitlementIdentifier, PaywallOptions options)
+        {
+            if (s_current != null && !s_current.Task.IsCompleted)
+            {
+                UnityEngine.Debug.LogWarning("[RevenueCatUI][iOS] Paywall presentation already in progress; rejecting new request.");
+                return Task.FromResult(PaywallResult.Error);
+            }
+
+            var tcs = new TaskCompletionSource<PaywallResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            s_current = tcs;
+            try
+            {
+                var presentedOfferingContextJson = options?.PresentedOfferingContext?.ToJsonString();
+                var useFullScreen = options?.PresentationConfiguration?.IOS == IOSPaywallPresentationStyle.FullScreen;
+                var presentationMode = options?.PresentationConfiguration?.IOS?.Value;
+                var customVariablesJson = options?.CustomVariablesToJsonString();
+                var hasPaywallListener = options?.Listener != null;
+                if (hasPaywallListener)
+                {
+                    PaywallListenerBridge.SetCurrentListener(options.Listener);
+                }
+                if (options?.PurchaseLogic != null)
+                {
+                    PurchaseLogicBridge.SetCurrentPurchaseLogic(options.PurchaseLogic);
+                    rcui_presentPaywallIfNeededWithPurchaseLogic(
+                        requiredEntitlementIdentifier,
+                        options.OfferingIdentifier,
+                        presentedOfferingContextJson,
+                        options.DisplayCloseButton,
+                        useFullScreen,
+                        presentationMode,
+                        customVariablesJson,
+                        OnPerformPurchase,
+                        OnPerformRestore,
+                        hasPaywallListener,
+                        OnPaywallEvent,
+                        OnResultWithPurchaseLogic);
+                }
+                else
+                {
+                    rcui_presentPaywallIfNeeded(requiredEntitlementIdentifier, options?.OfferingIdentifier, presentedOfferingContextJson, options?.DisplayCloseButton ?? true, useFullScreen, presentationMode, customVariablesJson, hasPaywallListener, OnPaywallEvent, OnResult);
+                }
+            }
+            catch (Exception e)
+            {
+                UnityEngine.Debug.LogError($"[RevenueCatUI][iOS] Exception in presentPaywallIfNeeded: {e.Message}");
+                tcs.TrySetResult(PaywallResult.Error);
+                s_current = null;
+                PurchaseLogicBridge.ClearCurrentPurchaseLogic();
+                PaywallListenerBridge.ClearCurrentListener();
+            }
+            return tcs.Task;
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(PaywallResultCallback))]
+        private static void OnResult(string result)
+        {
+            PaywallListenerBridge.ClearCurrentListener();
+            var current = s_current;
+            s_current = null;
+            if (current == null) return;
+
+            PaywallResult paywallResult;
+            try
+            {
+                var token = (result ?? "ERROR");
+                var native = token.Split('|')[0];
+                var type = PaywallResultTypeExtensions.FromNativeString(native);
+                paywallResult = new PaywallResult(type);
+            }
+            catch (Exception e)
+            {
+                UnityEngine.Debug.LogError($"[RevenueCatUI][iOS] Failed to handle paywall result '{result}': {e.Message}. Setting Error.");
+                paywallResult = PaywallResult.Error;
+            }
+
+            // Complete the task through the same main thread queue used for listener
+            // events, so any events posted before this result dispatch first regardless
+            // of how the caller awaits (e.g. ConfigureAwait(false)).
+            PaywallListenerBridge.PostToMainThread(() => current.TrySetResult(paywallResult));
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(PaywallResultCallback))]
+        private static void OnResultWithPurchaseLogic(string result)
+        {
+            PurchaseLogicBridge.ClearCurrentPurchaseLogic();
+            OnResult(result);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(PurchaseLogicPurchaseCallback))]
+        private static void OnPerformPurchase(string requestId, string packageJson)
+        {
+            PurchaseLogicBridge.OnPerformPurchase(requestId, packageJson);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(PurchaseLogicRestoreCallback))]
+        private static void OnPerformRestore(string requestId)
+        {
+            PurchaseLogicBridge.OnPerformRestore(requestId);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(PaywallEventCallback))]
+        private static void OnPaywallEvent(string eventName, string payloadJson)
+        {
+            PaywallListenerBridge.OnPaywallEvent(eventName, payloadJson);
+        }
+    }
+}
+#endif

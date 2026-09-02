@@ -1,16 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using RevenueCat;
 
 public interface IPurchasesWrapper
 {
     void Setup(string gameObject, string apiKey, string appUserId, Purchases.PurchasesAreCompletedBy purchasesAreCompletedBy,
         Purchases.StoreKitVersion storeKitVersion, string userDefaultsSuiteName, bool useAmazon, string dangerousSettingsJson,
-        bool shouldShowInAppMessagesAutomatically, bool pendingTransactionsForPrepaidPlansEnabled);
+        bool shouldShowInAppMessagesAutomatically, bool pendingTransactionsForPrepaidPlansEnabled, bool diagnosticsEnabled,
+        bool automaticDeviceIdentifierCollectionEnabled, string preferredUILocaleOverride);
 
     void Setup(string gameObject, string apiKey, string appUserId, Purchases.PurchasesAreCompletedBy purchasesAreCompletedBy,
         Purchases.StoreKitVersion storeKitVersion, string userDefaultsSuiteName, bool useAmazon, string dangerousSettingsJson,
         bool shouldShowInAppMessagesAutomatically, Purchases.EntitlementVerificationMode entitlementVerificationMode,
-        bool pendingTransactionsForPrepaidPlansEnabled);
+        bool pendingTransactionsForPrepaidPlansEnabled, bool diagnosticsEnabled, bool automaticDeviceIdentifierCollectionEnabled,
+        string preferredUILocaleOverride);
 
     void GetStorefront();
     void GetProducts(string[] productIdentifiers, string type = "subs");
@@ -51,6 +54,7 @@ public interface IPurchasesWrapper
     bool IsConfigured();
     void CheckTrialOrIntroductoryPriceEligibility(string[] productIdentifiers);
     void InvalidateCustomerInfoCache();
+    void OverridePreferredUILocale(string locale);
     void PresentCodeRedemptionSheet();
     void RecordPurchase(string productID);
     void SetSimulatesAskToBuyInSandbox(bool enabled);
@@ -64,6 +68,7 @@ public interface IPurchasesWrapper
     void SetFBAnonymousID(string fbAnonymousID);
     void SetMparticleID(string mparticleID);
     void SetOnesignalID(string onesignalID);
+    void SetOnesignalUserID(string onesignalUserID);
     void SetAirshipChannelID(string airshipChannelID);
     void SetCleverTapID(string cleverTapID);
     void SetMixpanelDistinctID(string mixpanelDistinctID);
@@ -74,6 +79,7 @@ public interface IPurchasesWrapper
     void SetAd(string ad);
     void SetKeyword(string keyword);
     void SetCreative(string creative);
+    void SetAppsFlyerConversionData(string conversionDataJson);
     void CollectDeviceIdentifiers();
     void CanMakePayments(Purchases.BillingFeature[] features);
     void GetPromotionalOffer(string productIdentifier, string discountIdentifier);
@@ -87,4 +93,12 @@ public interface IPurchasesWrapper
     void GetEligibleWinBackOffersForPackage(Purchases.Package package);
     void PurchaseProductWithWinBackOffer(Purchases.StoreProduct storeProduct, Purchases.WinBackOffer winBackOffer);
     void PurchasePackageWithWinBackOffer(Purchases.Package package, Purchases.WinBackOffer winBackOffer);
+    void TrackCustomPaywallImpression(Purchases.CustomPaywallImpressionParams parameters);
+    void TrackAdDisplayed(AdDisplayedData data);
+    void TrackAdOpened(AdOpenedData data);
+    void TrackAdRevenue(AdRevenueData data);
+    void TrackAdLoaded(AdLoadedData data);
+    void TrackAdFailedToLoad(AdFailedToLoadData data);
+    void GenerateRewardVerificationToken(string impressionId);
+    void PollRewardVerification(string clientTransactionId, RevenueCat.RewardedAdTrackingMetadata trackingMetadata = null);
 }

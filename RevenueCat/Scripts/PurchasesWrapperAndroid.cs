@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using RevenueCat;
 using RevenueCat.SimpleJSON;
 using UnityEngine;
 
@@ -88,18 +89,22 @@ public class PurchasesWrapperAndroid : IPurchasesWrapper
 
     public void Setup(string gameObject, string apiKey, string appUserId, Purchases.PurchasesAreCompletedBy purchasesAreCompletedBy, Purchases.StoreKitVersion storeKitVersion,
         string userDefaultsSuiteName, bool useAmazon, string dangerousSettingsJson, bool shouldShowInAppMessagesAutomatically,
-        bool pendingTransactionsForPrepaidPlansEnabled)
+        bool pendingTransactionsForPrepaidPlansEnabled, bool diagnosticsEnabled, bool automaticDeviceIdentifierCollectionEnabled,
+        string preferredUILocaleOverride)
     {
         Setup(gameObject, apiKey, appUserId, purchasesAreCompletedBy, storeKitVersion, userDefaultsSuiteName, useAmazon,
-            dangerousSettingsJson, shouldShowInAppMessagesAutomatically, Purchases.EntitlementVerificationMode.Disabled, pendingTransactionsForPrepaidPlansEnabled);
+            dangerousSettingsJson, shouldShowInAppMessagesAutomatically, Purchases.EntitlementVerificationMode.Disabled, pendingTransactionsForPrepaidPlansEnabled,
+            diagnosticsEnabled, automaticDeviceIdentifierCollectionEnabled, preferredUILocaleOverride);
     }
 
     public void Setup(string gameObject, string apiKey, string appUserId, Purchases.PurchasesAreCompletedBy purchasesAreCompletedBy, Purchases.StoreKitVersion storeKitVersion,
         string userDefaultsSuiteName, bool useAmazon, string dangerousSettingsJson, bool shouldShowInAppMessagesAutomatically,
-        Purchases.EntitlementVerificationMode entitlementVerificationMode, bool pendingTransactionsForPrepaidPlansEnabled)
+        Purchases.EntitlementVerificationMode entitlementVerificationMode, bool pendingTransactionsForPrepaidPlansEnabled,
+        bool diagnosticsEnabled, bool automaticDeviceIdentifierCollectionEnabled, string preferredUILocaleOverride)
     {
         CallPurchases("setup", apiKey, appUserId, gameObject, purchasesAreCompletedBy.Name(), userDefaultsSuiteName, useAmazon, shouldShowInAppMessagesAutomatically,
-            dangerousSettingsJson, entitlementVerificationMode.Name(), pendingTransactionsForPrepaidPlansEnabled);
+            dangerousSettingsJson, entitlementVerificationMode.Name(), pendingTransactionsForPrepaidPlansEnabled, diagnosticsEnabled,
+            automaticDeviceIdentifierCollectionEnabled, preferredUILocaleOverride);
     }
 
     public void RestorePurchases()
@@ -212,6 +217,11 @@ public class PurchasesWrapperAndroid : IPurchasesWrapper
         CallPurchases("invalidateCustomerInfoCache");
     }
 
+    public void OverridePreferredUILocale(string locale)
+    {
+        CallPurchases("overridePreferredUILocale", locale);
+    }
+
     public void PresentCodeRedemptionSheet()
     {
         // NOOP
@@ -277,6 +287,11 @@ public class PurchasesWrapperAndroid : IPurchasesWrapper
         CallPurchases("setOnesignalID", onesignalID);
     }
 
+    public void SetOnesignalUserID(string onesignalUserID)
+    {
+        CallPurchases("setOnesignalUserID", onesignalUserID);
+    }
+
     public void SetAirshipChannelID(string airshipChannelID)
     {
         CallPurchases("setAirshipChannelID", airshipChannelID);
@@ -325,6 +340,11 @@ public class PurchasesWrapperAndroid : IPurchasesWrapper
     public void SetCreative(string creative)
     {
         CallPurchases("setCreative", creative);
+    }
+
+    public void SetAppsFlyerConversionData(string conversionDataJson)
+    {
+        CallPurchases("setAppsFlyerConversionData", conversionDataJson);
     }
 
     public void CollectDeviceIdentifiers()
@@ -425,6 +445,34 @@ public class PurchasesWrapperAndroid : IPurchasesWrapper
         CallPurchases("purchasePackageWithWinBackOffer", package.Identifier, package.PresentedOfferingContext.ToJsonString(), winBackOffer.Identifier);
     }
 
+    public void TrackCustomPaywallImpression(Purchases.CustomPaywallImpressionParams parameters)
+    {
+        var offeringId = parameters.OfferingId;
+        CallPurchases("trackCustomPaywallImpression", parameters.PaywallId, offeringId,
+            parameters.PresentedOfferingContext?.ToJsonString());
+    }
+
+    public void TrackAdDisplayed(AdDisplayedData data) =>
+        CallPurchases("trackAdDisplayed", data.ToJsonString());
+
+    public void TrackAdOpened(AdOpenedData data) =>
+        CallPurchases("trackAdOpened", data.ToJsonString());
+
+    public void TrackAdRevenue(AdRevenueData data) =>
+        CallPurchases("trackAdRevenue", data.ToJsonString());
+
+    public void TrackAdLoaded(AdLoadedData data) =>
+        CallPurchases("trackAdLoaded", data.ToJsonString());
+
+    public void TrackAdFailedToLoad(AdFailedToLoadData data) =>
+        CallPurchases("trackAdFailedToLoad", data.ToJsonString());
+
+    public void GenerateRewardVerificationToken(string impressionId) =>
+        CallPurchases("generateRewardVerificationToken", impressionId);
+
+    public void PollRewardVerification(string clientTransactionId, RevenueCat.RewardedAdTrackingMetadata trackingMetadata = null) =>
+        CallPurchases("pollRewardVerification", clientTransactionId, trackingMetadata?.ToJsonString());
+
     private const string PurchasesWrapper = "com.revenuecat.purchasesunity.PurchasesWrapper";
 
     private static void CallPurchases(string methodName, params object[] args)
@@ -442,5 +490,6 @@ public class PurchasesWrapperAndroid : IPurchasesWrapper
             return purchases.CallStatic<ReturnType>(methodName, args);
         }
     }
+
 }
 #endif

@@ -1,0 +1,52 @@
+apply plugin: 'com.android.library'
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.revenuecat.purchases:purchases-hybrid-common:18.33.1'
+    implementation 'com.revenuecat.purchases:purchases-hybrid-common-ui:18.33.1'
+    implementation 'androidx.activity:activity:1.8.2'
+    // Required at compile time so the Java compiler can resolve PaywallView's
+    // class hierarchy (PaywallView -> CompatComposeView -> AbstractComposeView -> ViewGroup).
+    // At runtime this is provided transitively by purchases-hybrid-common-ui.
+    compileOnly 'androidx.compose.ui:ui-android:1.7.0'
+}
+
+android {
+    namespace 'com.revenuecat.purchasesunity.ui'
+    
+    compileSdk getProperty("unity.compileSdkVersion") as int
+    buildToolsVersion = getProperty("unity.buildToolsVersion")
+
+    compileOptions {
+        sourceCompatibility JavaVersion.valueOf(getProperty("unity.javaCompatabilityVersion"))
+        targetCompatibility JavaVersion.valueOf(getProperty("unity.javaCompatabilityVersion"))
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src/main/java']
+            res.srcDirs = ['src/main/res']
+            assets.srcDirs = ['src/main/assets']
+            jniLibs.srcDirs = ['src/main/jniLibs']
+        }
+    }
+
+    def unityLib = project(':unityLibrary').extensions.getByName('android')
+
+    defaultConfig {
+        minSdkVersion unityLib.defaultConfig.minSdkVersion.mApiLevel
+        targetSdkVersion unityLib.defaultConfig.targetSdkVersion.mApiLevel
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}

@@ -21,6 +21,7 @@ verbose_echo() {
 
 PROJECT="$PWD/Subtester"
 PACKAGE="$PWD/Purchases.unitypackage"
+UI_PACKAGE="$PWD/PurchasesUI.unitypackage"
 
 verbose_echo "Project path: $PROJECT"
 verbose_echo "Package output path: $PACKAGE"
@@ -49,11 +50,23 @@ if [ ! -z "$CI" ]; then
     verbose_echo "Using copy operation instead of symlink for CI compatibility"
     cp -r "$PWD/RevenueCat" "$PROJECT/Assets/"
     
+    # Also copy RevenueCatUI folder for compilation (not exported yet)
+    echo "🔧 Copying RevenueCatUI folder for compilation"
+    verbose_echo "Copying: $PWD/RevenueCatUI → $PROJECT/Assets/RevenueCatUI"
+    cp -r "$PWD/RevenueCatUI" "$PROJECT/Assets/"
+    
     # Verify copy was successful
     if [ -d "$PROJECT/Assets/RevenueCat" ]; then
         echo "✅ RevenueCat folder copied successfully"
     else
         echo "❌ Failed to copy RevenueCat folder!"
+        exit 1
+    fi
+    
+    if [ -d "$PROJECT/Assets/RevenueCatUI" ]; then
+        echo "✅ RevenueCatUI folder copied successfully"
+    else
+        echo "❌ Failed to copy RevenueCatUI folder!"
         exit 1
     fi
 else
@@ -63,12 +76,24 @@ else
     verbose_echo "Using symlink operation for local development"
     ln -s "$PWD/RevenueCat" "$PROJECT/Assets/"
     
+    # Also create symlink for RevenueCatUI folder for compilation (not exported yet)
+    verbose_echo "Creating symlink: $PWD/RevenueCatUI → $PROJECT/Assets/RevenueCatUI"
+    ln -s "$PWD/RevenueCatUI" "$PROJECT/Assets/"
+    
     # Verify symlink was created successfully
     if [ -L "$PROJECT/Assets/RevenueCat" ]; then
-        echo "✅ Symlink created successfully"
+        echo "✅ RevenueCat symlink created successfully"
     else
         echo "❌ Failed to create symlink!"
         rm -f $SYMBOLIC_LINK_PATH
+        exit 1
+    fi
+    
+    if [ -L "$PROJECT/Assets/RevenueCatUI" ]; then
+        echo "✅ RevenueCatUI symlink created successfully"
+    else
+        echo "❌ Failed to create RevenueCatUI symlink!"
+        rm -f "$PROJECT/Assets/RevenueCatUI"
         exit 1
     fi
 fi
@@ -96,7 +121,7 @@ if [ -d "$PROJECT/Assets/RevenueCat" ]; then
     fi
 else
     echo "❌ Failed to access RevenueCat folder!"
-    rm -rf "$PROJECT/Assets/RevenueCat" 2>/dev/null
+    rm -rf "$PROJECT/Assets/RevenueCat" "$PROJECT/Assets/RevenueCatUI" 2>/dev/null
     exit 1
 fi
 
@@ -106,20 +131,30 @@ verbose_echo "Original manifest.json contents:"
 if [ "$VERBOSE" = true ]; then
     cat $MANIFEST_JSON_PATH
 fi
-verbose_echo "Removing com.revenuecat.purchases-unity dependency from manifest.json"
-awk '!/com.revenuecat.purchases-unity/' $MANIFEST_JSON_PATH > temp && mv temp $MANIFEST_JSON_PATH
+verbose_echo "Removing com.revenuecat.purchases-unity and com.revenuecat.purchases-ui-unity dependencies from manifest.json"
+awk '!/com.revenuecat.purchases-unity/ && !/com.revenuecat.purchases-ui-unity/' $MANIFEST_JSON_PATH > temp && mv temp $MANIFEST_JSON_PATH
 verbose_echo "Modified manifest.json contents:"
 if [ "$VERBOSE" = true ]; then
     cat $MANIFEST_JSON_PATH
 fi
 # Build export folders list, checking what actually exists
 FOLDERS_TO_EXPORT=""
+UI_FOLDERS_TO_EXPORT=""
 verbose_echo "Building export folders list..."
 cd $PROJECT
 if [ -d "Assets/RevenueCat" ]; then
     REVENUECAT_FOLDERS=$(find Assets/RevenueCat/* -type d -prune 2>/dev/null | tr '\n' ' ')
     FOLDERS_TO_EXPORT="$FOLDERS_TO_EXPORT $REVENUECAT_FOLDERS"
     verbose_echo "Found RevenueCat folders: $REVENUECAT_FOLDERS"
+fi
+if [ -d "Assets/RevenueCatUI" ]; then
+    REVENUECAT_UI_FOLDERS=$(find Assets/RevenueCatUI/* -type d -prune 2>/dev/null | grep -v '/build$' | tr '\n' ' ')
+    UI_FOLDERS_TO_EXPORT="$UI_FOLDERS_TO_EXPORT $REVENUECAT_UI_FOLDERS"
+    verbose_echo "Found RevenueCatUI folders: $REVENUECAT_UI_FOLDERS"
+    
+    # Clean up .DS_Store files before export
+    verbose_echo "Removing .DS_Store files from RevenueCatUI"
+    find Assets/RevenueCatUI -name ".DS_Store" -type f -delete 2>/dev/null
 fi
 if [ -d "Assets/PlayServicesResolver" ]; then
     FOLDERS_TO_EXPORT="$FOLDERS_TO_EXPORT Assets/PlayServicesResolver"
@@ -142,7 +177,7 @@ PLUGINS_FOLDER="$PWD/RevenueCat/Plugins"
 
 if ! [ -d "$PROJECT" ]; then
     echo "Run this script from the root folder of the repository (e.g. ./scripts/create-unity-package.sh)."
-    rm -rf "$PROJECT/Assets/RevenueCat" 2>/dev/null
+    rm -rf "$PROJECT/Assets/RevenueCat" "$PROJECT/Assets/RevenueCatUI" 2>/dev/null
     exit 1
 fi
 
@@ -153,7 +188,7 @@ if [ -z "$UNITY_BIN" ]; then
     echo "  -u <unity_path>  Path to Unity binary"
     echo "  -v              Enable verbose output"
     echo "Note: This script is optimized for Unity 6.2 (6000.2.x) but should work with Unity 2021.3+ versions"
-    rm -rf "$PROJECT/Assets/RevenueCat" 2>/dev/null
+    rm -rf "$PROJECT/Assets/RevenueCat" "$PROJECT/Assets/RevenueCatUI" 2>/dev/null
     exit 1
 fi
 
@@ -161,7 +196,7 @@ fi
 verbose_echo "Checking Unity binary at: $UNITY_BIN"
 if [ ! -x "$UNITY_BIN" ]; then
     echo "😞 Unity binary not found or not executable at: $UNITY_BIN"
-    rm -rf "$PROJECT/Assets/RevenueCat" 2>/dev/null
+    rm -rf "$PROJECT/Assets/RevenueCat" "$PROJECT/Assets/RevenueCatUI" 2>/dev/null
     exit 1
 fi
 verbose_echo "Unity binary verified successfully"
@@ -198,13 +233,13 @@ else
         curl -L "$EDM_URL" -o "$EDM_FILE"
     else
         echo "❌ Neither wget nor curl found. Please install one of them."
-        rm -rf "$PROJECT/Assets/RevenueCat" 2>/dev/null
+        rm -rf "$PROJECT/Assets/RevenueCat" "$PROJECT/Assets/RevenueCatUI" 2>/dev/null
         exit 1
     fi
     
     if [ ! -f "$EDM_FILE" ]; then
         echo "❌ Failed to download External Dependency Manager"
-        rm -rf "$PROJECT/Assets/RevenueCat" 2>/dev/null
+        rm -rf "$PROJECT/Assets/RevenueCat" "$PROJECT/Assets/RevenueCatUI" 2>/dev/null
         exit 1
     fi
 fi
@@ -212,6 +247,10 @@ fi
 if [ -f $PACKAGE ]; then
     verbose_echo "Old package found. Removing it."
     rm $PACKAGE
+fi
+if [ -f $UI_PACKAGE ]; then
+    verbose_echo "Old UI package found. Removing it."
+    rm $UI_PACKAGE
 fi
 
 echo "📦 Creating Purchases.unitypackage, this may take a minute."
@@ -255,12 +294,52 @@ else
     if [ ! -f "$PACKAGE" ]; then
         echo "   Package file not found: $PACKAGE"
     fi
-    verbose_echo "Cleaning up RevenueCat folder/symlink due to failure"
-    # Cleanup RevenueCat folder/symlink
-    rm -rf "$PROJECT/Assets/RevenueCat"
+    verbose_echo "Cleaning up RevenueCat and RevenueCatUI folders/symlinks due to failure"
+    rm -rf "$PROJECT/Assets/RevenueCat" "$PROJECT/Assets/RevenueCatUI"
     exit 1
 fi
 
-# Cleanup RevenueCat folder/symlink
-verbose_echo "Cleaning up RevenueCat folder/symlink after successful package creation"
-rm -rf "$PROJECT/Assets/RevenueCat"
+echo "📦 Creating PurchasesUI.unitypackage, this may take a minute."
+
+verbose_echo "Starting Unity package creation process for UI..."
+if [ ! -z "$CI" ] ; then
+    verbose_echo "Running Unity in CI mode with xvfb-run for UI package"
+    xvfb-run --auto-servernum --server-args='-screen 0 640x480x24' $UNITY_BIN -gvh_disable \
+    -nographics \
+    -silent-crashes \
+    -projectPath $PROJECT \
+    -force-free -quit -batchmode -logFile /dev/stdout \
+    -disable-assembly-updater \
+    -importPackage $PROJECT/external-dependency-manager-latest.unitypackage \
+    -exportPackage $UI_FOLDERS_TO_EXPORT $UI_PACKAGE
+    UI_UNITY_EXIT_CODE=$?
+else
+    verbose_echo "Running Unity in local mode for UI package"
+    $UNITY_BIN -gvh_disable \
+    -nographics \
+    -projectPath $PROJECT \
+    -force-free -quit -batchmode -logFile exportlog.txt \
+    -disable-assembly-updater \
+    -importPackage $PROJECT/external-dependency-manager-latest.unitypackage \
+    -exportPackage $UI_FOLDERS_TO_EXPORT $UI_PACKAGE
+    UI_UNITY_EXIT_CODE=$?
+fi
+verbose_echo "Unity process for UI completed with exit code: $UI_UNITY_EXIT_CODE"
+
+if [ $UI_UNITY_EXIT_CODE -eq 0 ] && [ -f "$UI_PACKAGE" ]; then
+    echo "✅ UI package created successfully: $UI_PACKAGE"
+    verbose_echo "UI Package file size: $(du -h "$UI_PACKAGE" | cut -f1)"
+else
+    echo "❌ UI Unity package creation failed!"
+    echo "   Unity exit code: $UI_UNITY_EXIT_CODE"
+    if [ ! -f "$UI_PACKAGE" ]; then
+        echo "   Package file not found: $UI_PACKAGE"
+    fi
+    verbose_echo "Cleaning up RevenueCat and RevenueCatUI folders/symlinks due to failure"
+    rm -rf "$PROJECT/Assets/RevenueCat" "$PROJECT/Assets/RevenueCatUI"
+    exit 1
+fi
+
+# Cleanup RevenueCat and RevenueCatUI folders/symlinks
+verbose_echo "Cleaning up RevenueCat and RevenueCatUI folders/symlinks after successful package creation"
+rm -rf "$PROJECT/Assets/RevenueCat" "$PROJECT/Assets/RevenueCatUI"

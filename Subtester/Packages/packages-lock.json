@@ -1,5 +1,30 @@
 {
   "dependencies": {
+    "com.google.ads.mobile": {
+      "version": "10.6.0",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.google.external-dependency-manager": "1.2.186",
+        "com.unity.modules.androidjni": "1.0.0"
+      },
+      "url": "https://package.openupm.com"
+    },
+    "com.google.external-dependency-manager": {
+      "version": "1.2.186",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://package.openupm.com"
+    },
+    "com.revenuecat.purchases-ui-unity": {
+      "version": "file:../../RevenueCatUI",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.revenuecat.purchases-unity": "file:../RevenueCat"
+      }
+    },
     "com.revenuecat.purchases-unity": {
       "version": "file:../../RevenueCat",
       "depth": 0,
@@ -22,7 +47,7 @@
       }
     },
     "com.unity.ads": {
-      "version": "4.4.2",
+      "version": "4.12.0",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -31,7 +56,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.ai.navigation": {
-      "version": "2.0.8",
+      "version": "2.0.9",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -50,7 +75,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.collab-proxy": {
-      "version": "2.8.2",
+      "version": "2.9.3",
       "depth": 0,
       "source": "registry",
       "dependencies": {},
@@ -63,7 +88,7 @@
       "dependencies": {}
     },
     "com.unity.ide.rider": {
-      "version": "3.0.36",
+      "version": "3.0.38",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -118,7 +143,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.test-framework": {
-      "version": "1.5.1",
+      "version": "1.6.0",
       "depth": 0,
       "source": "builtin",
       "dependencies": {

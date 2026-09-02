@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using RevenueCat;
 
 public partial class Purchases
 {
@@ -6,14 +7,16 @@ public partial class Purchases
     {
         public void Setup(string gameObject, string apiKey, string appUserId, Purchases.PurchasesAreCompletedBy purchasesAreCompletedBy,
             Purchases.StoreKitVersion storeKitVersion, string userDefaultsSuiteName, bool useAmazon, string dangerousSettingsJson,
-            bool shouldShowInAppMessagesAutomatically, bool pendingTransactionsForPrepaidPlansEnabled)
+            bool shouldShowInAppMessagesAutomatically, bool pendingTransactionsForPrepaidPlansEnabled, bool diagnosticsEnabled,
+            bool automaticDeviceIdentifierCollectionEnabled, string preferredUILocaleOverride)
         {
         }
 
         public void Setup(string gameObject, string apiKey, string appUserId, Purchases.PurchasesAreCompletedBy purchasesAreCompletedBy,
             Purchases.StoreKitVersion storeKitVersion, string userDefaultsSuiteName, bool useAmazon, string dangerousSettingsJson,
             bool shouldShowInAppMessagesAutomatically, Purchases.EntitlementVerificationMode entitlementVerificationMode,
-            bool pendingTransactionsForPrepaidPlansEnabled)
+            bool pendingTransactionsForPrepaidPlansEnabled, bool diagnosticsEnabled, bool automaticDeviceIdentifierCollectionEnabled,
+            string preferredUILocaleOverride)
         {
         }
 
@@ -135,6 +138,10 @@ public partial class Purchases
         {
         }
 
+        public void OverridePreferredUILocale(string locale)
+        {
+        }
+
         public void PresentCodeRedemptionSheet()
         {
         }
@@ -187,6 +194,10 @@ public partial class Purchases
         {
         }
 
+        public void SetOnesignalUserID(string onesignalUserID)
+        {
+        }
+
         public void SetAirshipChannelID(string airshipChannelID)
         {
         }
@@ -224,6 +235,10 @@ public partial class Purchases
         }
 
         public void SetCreative(string creative)
+        {
+        }
+
+        public void SetAppsFlyerConversionData(string conversionDataJson)
         {
         }
 
@@ -279,5 +294,17 @@ public partial class Purchases
         public void PurchasePackageWithWinBackOffer(Purchases.Package package, Purchases.WinBackOffer winBackOffer)
         {
         }
+
+        public void TrackCustomPaywallImpression(Purchases.CustomPaywallImpressionParams parameters)
+        {
+        }
+
+        public void TrackAdDisplayed(AdDisplayedData data) { }
+        public void TrackAdOpened(AdOpenedData data) { }
+        public void TrackAdRevenue(AdRevenueData data) { }
+        public void TrackAdLoaded(AdLoadedData data) { }
+        public void TrackAdFailedToLoad(AdFailedToLoadData data) { }
+        public void GenerateRewardVerificationToken(string impressionId) { }
+        public void PollRewardVerification(string clientTransactionId, RevenueCat.RewardedAdTrackingMetadata trackingMetadata = null) { }
     }
 }

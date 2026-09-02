@@ -1,9 +1,7 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 using System;
 using System.Collections.Generic;
 using RevenueCat.SimpleJSON;
-
 #pragma warning disable CS0649
 
 public partial class Purchases : MonoBehaviour
@@ -85,7 +83,7 @@ public partial class Purchases : MonoBehaviour
     public bool shouldShowInAppMessagesAutomatically = true;
 
     [Tooltip("The entitlement verification mode to use. For more information, check: https://rev.cat/trusted-entitlements")]
-    public EntitlementVerificationMode entitlementVerificationMode = EntitlementVerificationMode.Disabled;
+    public EntitlementVerificationMode entitlementVerificationMode = EntitlementVerificationMode.Informational;
 
     [Tooltip("Enable this setting if you want to allow pending purchases for prepaid subscriptions (only supported " +
              "in Google Play). Note that entitlements are not granted until payment is done. Disabled by default.")]
@@ -99,15 +97,22 @@ public partial class Purchases : MonoBehaviour
     public string proxyURL;
 
     private IPurchasesWrapper _wrapper;
+    public RevenueCat.AdTracker AdTracker { get; private set; }
+
+    internal void SetWrapper(IPurchasesWrapper wrapper)
+    {
+        _wrapper = wrapper ?? throw new ArgumentNullException(nameof(wrapper));
+        AdTracker = new RevenueCat.AdTracker(_wrapper);
+    }
 
     private void Start()
     {
 #if UNITY_ANDROID && !UNITY_EDITOR
-        _wrapper = new PurchasesWrapperAndroid();
+        SetWrapper(new PurchasesWrapperAndroid());
 #elif (UNITY_IOS || UNITY_VISIONOS) && !UNITY_EDITOR
-        _wrapper = new PurchasesWrapperiOS();
+        SetWrapper(new PurchasesWrapperiOS());
 #else
-        _wrapper = new PurchasesWrapperNoop();
+        SetWrapper(new PurchasesWrapperNoop());
 #endif
         if (!string.IsNullOrEmpty(proxyURL))
         {
@@ -192,7 +197,9 @@ public partial class Purchases : MonoBehaviour
         _wrapper.Setup(gameObject.name, purchasesConfiguration.ApiKey, purchasesConfiguration.AppUserId,
             purchasesConfiguration.PurchasesAreCompletedBy, purchasesConfiguration.StoreKitVersion, purchasesConfiguration.UserDefaultsSuiteName,
             purchasesConfiguration.UseAmazon, dangerousSettings, purchasesConfiguration.ShouldShowInAppMessagesAutomatically,
-            purchasesConfiguration.EntitlementVerificationMode, purchasesConfiguration.PendingTransactionsForPrepaidPlansEnabled);
+            purchasesConfiguration.EntitlementVerificationMode, purchasesConfiguration.PendingTransactionsForPrepaidPlansEnabled,
+            purchasesConfiguration.DiagnosticsEnabled, purchasesConfiguration.AutomaticDeviceIdentifierCollectionEnabled,
+            purchasesConfiguration.PreferredUILocaleOverride);
     }
 
     private bool IsAndroidEmulator()
@@ -637,7 +644,8 @@ public partial class Purchases : MonoBehaviour
     /// <summary>
     /// Callback for <see cref="Purchases.GetCurrentOfferingForPlacement"/>.
     /// </summary>
-    /// <param name="offerings"> The nullable <see cref="Offering"/> object if the request was successful, null otherwise.</param>
+    /// <param name="offerings"> The nullable <see cref="Offering"/> object if the request was successful, null if no
+    /// offering was found for the particular placement.</param>
     /// <param name="error"> The error if the request was unsuccessful, null otherwise.</param>
     public delegate void GetCurrentOfferingForPlacementFunc(Offering offerings, Error error);
 
@@ -685,6 +693,60 @@ public partial class Purchases : MonoBehaviour
     {
         SyncAttributesAndOfferingsIfNeededCallback = callback;
         _wrapper.SyncAttributesAndOfferingsIfNeeded();
+    }
+
+    /// <summary>
+    /// Callback for <see cref="Purchases.GenerateRewardVerificationToken"/>.
+    /// </summary>
+    /// <param name="token"> The generated token if the request was successful, null otherwise.</param>
+    /// <param name="error"> The error if the request was unsuccessful, null otherwise.</param>
+    public delegate void GenerateRewardVerificationTokenFunc(RewardVerificationToken token, Error error);
+
+    private GenerateRewardVerificationTokenFunc GenerateRewardVerificationTokenCallback { get; set; }
+
+    /// <summary>
+    /// Callback for <see cref="Purchases.PollRewardVerification"/>.
+    /// </summary>
+    /// <param name="result"> The verification result if the request was successful, null otherwise.</param>
+    /// <param name="error"> The error if the request was unsuccessful, null otherwise.</param>
+    public delegate void PollRewardVerificationFunc(RewardVerificationResult result, Error error);
+
+    private PollRewardVerificationFunc PollRewardVerificationCallback { get; set; }
+
+    /// <summary>
+    /// Generates a reward verification token for a rewarded ad impression.
+    ///
+    /// Pass the returned <see cref="RewardVerificationToken.ClientTransactionId"/> to the ad
+    /// network as the server-side verification custom data. After the ad completes, pass the same
+    /// id to <see cref="PollRewardVerification"/> to await the reward.
+    /// </summary>
+    /// <param name="impressionId"> The impression identifier of the rewarded ad.</param>
+    /// <param name="callback"> Called with the generated token, or an error if generation failed.</param>
+    public void GenerateRewardVerificationToken(string impressionId, GenerateRewardVerificationTokenFunc callback)
+    {
+        GenerateRewardVerificationTokenCallback = callback;
+        _wrapper.GenerateRewardVerificationToken(impressionId);
+    }
+
+    /// <summary>
+    /// Polls RevenueCat for the reward verification result of a rewarded ad.
+    ///
+    /// The callback fires once the native poller completes or times out (up to ~10-30s). A
+    /// timed-out or rejected verification reports a result with <see cref="RewardVerificationResult.Failed"/>
+    /// set to true rather than an error.
+    /// </summary>
+    /// <param name="clientTransactionId"> The <see cref="RewardVerificationToken.ClientTransactionId"/>
+    /// from <see cref="GenerateRewardVerificationToken"/>.</param>
+    /// <param name="callback"> Called with the verification result, or an error if polling failed.</param>
+    /// <param name="trackingMetadata"> Pass to have the SDK automatically track reward-verification
+    /// events for the ad it belongs to; omit to poll without tracking.</param>
+    public void PollRewardVerification(
+        string clientTransactionId,
+        PollRewardVerificationFunc callback,
+        RevenueCat.RewardedAdTrackingMetadata trackingMetadata = null)
+    {
+        PollRewardVerificationCallback = callback;
+        _wrapper.PollRewardVerification(clientTransactionId, trackingMetadata);
     }
 
     /// <summary>
@@ -828,7 +890,15 @@ public partial class Purchases : MonoBehaviour
         _wrapper.CheckTrialOrIntroductoryPriceEligibility(products);
     }
 
-    ///
+    /// <summary>
+    /// Overrides the preferred UI locale (e.g. "de_DE") used by RevenueCat UI components like Paywalls,
+    /// instead of the device locale. Pass null to clear the override.
+    /// </summary>
+    public void OverridePreferredUILocale(string locale)
+    {
+        _wrapper.OverridePreferredUILocale(locale);
+    }
+
     /// <summary>
     /// Invalidates the cache for customer information.
     /// </summary>
@@ -1030,13 +1100,25 @@ public partial class Purchases : MonoBehaviour
     /**
      * <summary>
      * Sets the subscriber attribute associated with the OneSignal Player Id for the user
-     * Required for the RevenueCat OneSignal integration
+     * Required for the RevenueCat OneSignal integration. Deprecated for OneSignal versions above v9.0.
      * </summary>
      * <param name="onesignalID">Empty String or null will delete the subscriber attribute.</param>
      */
     public void SetOnesignalID(string onesignalID)
     {
         _wrapper.SetOnesignalID(onesignalID);
+    }
+
+    /**
+     * <summary>
+     * Sets the subscriber attribute associated with the OneSignal User Id for the user
+     * Required for the RevenueCat OneSignal integration with versions v11.0 and above
+     * </summary>
+     * <param name="onesignalUserID">Empty String or null will delete the subscriber attribute.</param>
+     */
+    public void SetOnesignalUserID(string onesignalUserID)
+    {
+        _wrapper.SetOnesignalUserID(onesignalUserID);
     }
 
     /**
@@ -1155,6 +1237,63 @@ public partial class Purchases : MonoBehaviour
 
     /**
      * <summary>
+     * Sets conversion data from AppsFlyer's onConversionDataSuccess callback. This method extracts
+     * the relevant attribution fields from the AppsFlyer conversion data and sets the corresponding
+     * RevenueCat subscriber attributes. Note that this method will never unset any attributes.
+     * </summary>
+     * <param name="conversionData">The conversion data from AppsFlyer's onConversionDataSuccess
+     * callback. Pass the result of <c>AppsFlyer.CallbackStringToDictionary(conversionData)</c>.</param>
+     */
+    public void SetAppsFlyerConversionData(Dictionary<string, object> conversionData)
+    {
+        var jsonObject = new JSONObject();
+        foreach (var keyValuePair in conversionData)
+        {
+            jsonObject[keyValuePair.Key] = ConvertToJsonNode(keyValuePair.Value);
+        }
+
+        _wrapper.SetAppsFlyerConversionData(jsonObject.ToString());
+    }
+
+    private static JSONNode ConvertToJsonNode(object value)
+    {
+        switch (value)
+        {
+            case null:
+                return JSONNull.CreateOrGet();
+            case string stringValue:
+                return stringValue;
+            case bool boolValue:
+                return boolValue;
+            case int intValue:
+                return intValue;
+            case long longValue:
+                return longValue;
+            case float floatValue:
+                return floatValue;
+            case double doubleValue:
+                return doubleValue;
+            case IDictionary<string, object> dictValue:
+                var nestedObject = new JSONObject();
+                foreach (var keyValuePair in dictValue)
+                {
+                    nestedObject[keyValuePair.Key] = ConvertToJsonNode(keyValuePair.Value);
+                }
+                return nestedObject;
+            case IEnumerable<object> listValue:
+                var nestedArray = new JSONArray();
+                foreach (var item in listValue)
+                {
+                    nestedArray.Add(ConvertToJsonNode(item));
+                }
+                return nestedArray;
+            default:
+                return value.ToString();
+        }
+    }
+
+    /**
+     * <summary>
      * Automatically collect subscriber attributes associated with the device identifiers.
      * $idfa, $idfv, $ip on iOS
      * $gpsAdId, $androidId, $ip on Android
@@ -1264,6 +1403,29 @@ public partial class Purchases : MonoBehaviour
     public void ShowInAppMessages(Purchases.InAppMessageType[] messageTypes = null)
     {
         _wrapper.ShowInAppMessages(messageTypes);
+    }
+
+    /// <summary>
+    /// Tracks an impression for a custom paywall.
+    /// Call this when your custom (non-RevenueCat) paywall is displayed to a user.
+    /// This enables RevenueCat to track paywall impressions for analytics.
+    /// </summary>
+    /// <remarks>
+    /// Each call creates a separate impression event. Call this once per paywall presentation.
+    /// </remarks>
+    /// <param name="parameters">Parameters for the custom paywall impression.</param>
+    public void TrackCustomPaywallImpression(CustomPaywallImpressionParams parameters)
+    {
+        _wrapper.TrackCustomPaywallImpression(parameters);
+    }
+
+    /// <summary>
+    /// Tracks an impression for a custom paywall with no additional parameters.
+    /// Call this when your custom (non-RevenueCat) paywall is displayed to a user.
+    /// </summary>
+    public void TrackCustomPaywallImpression()
+    {
+        TrackCustomPaywallImpression(new CustomPaywallImpressionParams());
     }
 
     public delegate void ParseAsWebPurchaseRedemptionFunc(WebPurchaseRedemption webPurchaseRedemption);
@@ -1499,7 +1661,6 @@ public partial class Purchases : MonoBehaviour
         LogHandler(logLevel, messageInResponse);
     }
 
-
     // ReSharper disable once UnusedMember.Local
     private void _restorePurchases(string customerInfoJson)
     {
@@ -1561,15 +1722,20 @@ public partial class Purchases : MonoBehaviour
         var response = JSON.Parse(offeringJson);
         var callback = GetCurrentOfferingForPlacementCallback;
         GetCurrentOfferingForPlacementCallback = null;
+        // The error check has to come first: both native wrappers send only an "error" key on
+        // failure, so testing for a missing "offering" first reports every failure as
+        // "no offering configured for this placement".
         if (ResponseHasError(response))
         {
             callback(null, new Error(response["error"]));
+            return;
         }
-        else
+        if (response == null || response["offering"] == null)
         {
-            var offeringResponse = response["offering"];
-            callback(new Offering(offeringResponse), null);
+            callback(null, null);
+            return;
         }
+        callback(new Offering(response["offering"]), null);
     }
 
     // ReSharper disable once UnusedMember.Local
@@ -1587,6 +1753,42 @@ public partial class Purchases : MonoBehaviour
         {
             var offeringsResponse = response["offerings"];
             callback(new Offerings(offeringsResponse), null);
+        }
+    }
+
+    // ReSharper disable once UnusedMember.Local
+    private void _generateRewardVerificationToken(string tokenJson)
+    {
+        Debug.Log("_generateRewardVerificationToken " + tokenJson);
+        if (GenerateRewardVerificationTokenCallback == null) return;
+        var response = JSON.Parse(tokenJson);
+        var callback = GenerateRewardVerificationTokenCallback;
+        GenerateRewardVerificationTokenCallback = null;
+        if (ResponseHasError(response))
+        {
+            callback(null, new Error(response["error"]));
+        }
+        else
+        {
+            callback(new RewardVerificationToken(response), null);
+        }
+    }
+
+    // ReSharper disable once UnusedMember.Local
+    private void _pollRewardVerification(string resultJson)
+    {
+        Debug.Log("_pollRewardVerification " + resultJson);
+        if (PollRewardVerificationCallback == null) return;
+        var response = JSON.Parse(resultJson);
+        var callback = PollRewardVerificationCallback;
+        PollRewardVerificationCallback = null;
+        if (ResponseHasError(response))
+        {
+            callback(null, new Error(response["error"]));
+        }
+        else
+        {
+            callback(new RewardVerificationResult(response), null);
         }
     }
 

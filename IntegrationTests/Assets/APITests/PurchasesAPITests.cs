@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using RevenueCat;
+using RevenueCat.SimpleJSON;
 
 public class CustomListener : Purchases.UpdatedCustomerInfoListener
 {
@@ -168,6 +170,8 @@ public class PurchasesAPITests : MonoBehaviour
         purchases.CheckTrialOrIntroductoryPriceEligibility(new string[] { "a", "b" },
             eligibilities => { receivedEligibilities = eligibilities; });
         purchases.InvalidateCustomerInfoCache();
+        purchases.OverridePreferredUILocale("de_DE");
+        purchases.OverridePreferredUILocale(null);
         purchases.PresentCodeRedemptionSheet();
         purchases.SetSimulatesAskToBuyInSandbox(true);
 
@@ -181,6 +185,7 @@ public class PurchasesAPITests : MonoBehaviour
         purchases.SetFBAnonymousID("asdgas");
         purchases.SetMparticleID("asdgas");
         purchases.SetOnesignalID("asdgas");
+        purchases.SetOnesignalUserID("asdgas");
         purchases.SetAirshipChannelID("asdgas");
         purchases.SetCleverTapID("asdgas");
         purchases.SetMixpanelDistinctID("asdgas");
@@ -191,6 +196,7 @@ public class PurchasesAPITests : MonoBehaviour
         purchases.SetAd("asdgas");
         purchases.SetKeyword("asdgas");
         purchases.SetCreative("asdgas");
+        purchases.SetAppsFlyerConversionData(new Dictionary<string, object>());
         purchases.CollectDeviceIdentifiers();
 
         bool receivedCanMakePayments = false;
@@ -219,6 +225,9 @@ public class PurchasesAPITests : MonoBehaviour
             .SetShouldShowInAppMessagesAutomatically(false)
             .SetEntitlementVerificationMode(Purchases.EntitlementVerificationMode.Informational)
             .SetPendingTransactionsForPrepaidPlansEnabled(true)
+            .SetDiagnosticsEnabled(true)
+            .SetAutomaticDeviceIdentifierCollectionEnabled(false)
+            .SetPreferredUILocaleOverride("de_DE")
             .Build();
         purchases.Configure(purchasesConfiguration);
         purchases.RecordPurchase("product_id", (transaction, error) => 
@@ -233,6 +242,48 @@ public class PurchasesAPITests : MonoBehaviour
         purchases.ShowInAppMessages(new Purchases.InAppMessageType[] { Purchases.InAppMessageType.BillingIssue,
             Purchases.InAppMessageType.PriceIncreaseConsent, Purchases.InAppMessageType.Generic, Purchases.InAppMessageType.WinBackOffer });
         purchases.ShowInAppMessages();
+
+        purchases.TrackCustomPaywallImpression();
+        purchases.TrackCustomPaywallImpression(new Purchases.CustomPaywallImpressionParams("my_custom_paywall"));
+#pragma warning disable CS0618
+        purchases.TrackCustomPaywallImpression(new Purchases.CustomPaywallImpressionParams(paywallId: null, offeringId: null));
+        purchases.TrackCustomPaywallImpression(new Purchases.CustomPaywallImpressionParams(paywallId: "", offeringId: ""));
+        purchases.TrackCustomPaywallImpression(new Purchases.CustomPaywallImpressionParams(offeringId: "offering_id"));
+        purchases.TrackCustomPaywallImpression(new Purchases.CustomPaywallImpressionParams("my_custom_paywall", "offering_id"));
+#pragma warning restore CS0618
+        Purchases.Offering offering = CreateOfferingForCustomPaywallImpression();
+        Purchases.CustomPaywallImpressionParams paramsWithOffering =
+            new Purchases.CustomPaywallImpressionParams(offering);
+        Purchases.Offering paramsOffering = paramsWithOffering.Offering;
+        purchases.TrackCustomPaywallImpression(paramsWithOffering);
+        purchases.TrackCustomPaywallImpression(new Purchases.CustomPaywallImpressionParams("my_custom_paywall", paramsOffering));
+
+        // Ad tracking API tests
+        purchases.AdTracker.TrackAdDisplayed(new AdDisplayedData(AdTracker.MediatorName.AdMob, AdTracker.Format.Banner, "ad_unit", "imp_001"));
+        purchases.AdTracker.TrackAdDisplayed(new AdDisplayedData(AdTracker.MediatorName.AdMob, AdTracker.Format.Rewarded, "ad_unit", "imp_002", networkName: "network", placement: "main_menu"));
+        purchases.AdTracker.TrackAdOpened(new AdOpenedData(AdTracker.MediatorName.AppLovin, AdTracker.Format.Interstitial, "ad_unit", "imp_003"));
+        purchases.AdTracker.TrackAdLoaded(new AdLoadedData(new AdTracker.MediatorName("custom"), AdTracker.Format.AppOpen, "ad_unit", "imp_004"));
+        purchases.AdTracker.TrackAdRevenue(new AdRevenueData(AdTracker.MediatorName.AdMob, AdTracker.Format.Banner, "ad_unit", "imp_005", 1000000L, "USD", AdTracker.Precision.Estimated));
+        purchases.AdTracker.TrackAdRevenue(new AdRevenueData(AdTracker.MediatorName.AdMob, AdTracker.Format.Rewarded, "ad_unit", "imp_006", 500000L, "EUR", AdTracker.Precision.PublisherDefined, networkName: "network", placement: "end_level"));
+        purchases.AdTracker.TrackAdFailedToLoad(new AdFailedToLoadData(AdTracker.MediatorName.AdMob, AdTracker.Format.Banner, "ad_unit"));
+        purchases.AdTracker.TrackAdFailedToLoad(new AdFailedToLoadData(AdTracker.MediatorName.AdMob, AdTracker.Format.Banner, "ad_unit", placement: "home", mediatorErrorCode: 2));
+
+        // Reward verification API tests
+        purchases.GenerateRewardVerificationToken("imp_001", (token, error) =>
+        {
+            string customData = token.CustomData;
+            string clientTransactionId = token.ClientTransactionId;
+            string appUserID = token.AppUserID;
+        });
+        purchases.PollRewardVerification("client_transaction_id", (result, error) =>
+        {
+            bool failed = result.Failed;
+            Purchases.VerifiedReward reward = result.Reward;
+            List<Purchases.VerifiedReward> moreRewards = result.MoreRewards;
+        });
+        purchases.PollRewardVerification("client_transaction_id", (result, error) =>
+        {
+        }, new RewardedAdTrackingMetadata(AdTracker.MediatorName.AdMob, AdTracker.Format.Rewarded, "ad_unit", "imp_007", networkName: "network", placement: "main_menu"));
 
         // Win-back offer API tests
         // Purchasing win-back offers with a product
@@ -271,5 +322,40 @@ public class PurchasesAPITests : MonoBehaviour
 
         receivedVirtualCurrencies = purchases.GetCachedVirtualCurrencies();
         purchases.InvalidateVirtualCurrenciesCache();
+    }
+
+    private static Purchases.Offering CreateOfferingForCustomPaywallImpression()
+    {
+        JSONNode offeringJson = JSON.Parse(
+            @"{
+                ""identifier"": ""custom_offering"",
+                ""serverDescription"": ""Custom paywall offering"",
+                ""metadata"": {},
+                ""availablePackages"": [
+                    {
+                        ""identifier"": ""$rc_monthly"",
+                        ""packageType"": ""MONTHLY"",
+                        ""product"": {
+                            ""identifier"": ""product_id"",
+                            ""title"": ""Monthly"",
+                            ""description"": ""Monthly subscription"",
+                            ""price"": 1.99,
+                            ""priceString"": ""$1.99"",
+                            ""currencyCode"": ""USD"",
+                            ""productCategory"": ""SUBSCRIPTION""
+                        },
+                        ""presentedOfferingContext"": {
+                            ""offeringIdentifier"": ""custom_offering"",
+                            ""placementIdentifier"": ""onboarding"",
+                            ""targetingContext"": {
+                                ""revision"": 7,
+                                ""ruleId"": ""rule_1""
+                            }
+                        }
+                    }
+                ]
+            }");
+
+        return new Purchases.Offering(offeringJson);
     }
 }
